@@ -1,0 +1,12 @@
+name: nb201-tabular-imagenet
+api:
+  name: "nb201_tabular"
+  task_id: "ImageNet16-120"
+  max_epoch: 200
+  datadir: ${hydra:runtime.cwd}/data/nb201-tabular
+  _target_: mfpbench.get
+  step_size: 1
+  seed: ${seed}
+  prior: null
+  preload: true
+tabular: true

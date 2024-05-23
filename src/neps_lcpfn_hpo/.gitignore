@@ -1,0 +1,45 @@
+# Python
+__pycache__
+dist
+
+# Log files
+*.out
+*.err
+*.log
+*.json
+
+# slurm scripts
+slurm_scripts/*
+
+# Documentation
+site/*
+
+# IDE related
+.vscode/
+.idea/
+
+# Poetry
+poetry.lock
+
+# Misc
+*.sh
+*.model
+*.pth
+*.png
+
+# Results
+results
+neps_examples/results
+tests_tmpdir
+usage_example
+
+# Regression tests
+!losses.json
+jahs_bench_data/
+*_runs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MacOS
+*.DS_Store

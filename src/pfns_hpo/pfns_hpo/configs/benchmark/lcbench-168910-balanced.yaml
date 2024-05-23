@@ -1,0 +1,12 @@
+name: lcbench-168910-balanced
+api:
+  name: lcbench
+  prior: null
+  datadir: ${hydra:runtime.cwd}/data/yahpo-gym-data
+  task_id: '168910'
+  _target_: mfpbench.get
+  step_size: 2
+  seed: ${seed}
+  preload: true
+  value_metric: val_balanced_accuracy
+tabular: false

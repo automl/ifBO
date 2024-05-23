@@ -1,0 +1,11 @@
+api:
+  _target_: mfpbench.get
+  datadir: ${hydra:runtime.cwd}/data/taskset-tabular/
+  name: taskset_tabular
+  optimizer: adam4p
+  preload: true
+  seed: ${seed}
+  step_size: 3
+  task_id: FixedTextRNNClassification_imdb_patch32_IRNN64_relu_last_bs128
+name: taskset-tabular-nlp-7-4p
+tabular: true

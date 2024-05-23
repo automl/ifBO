@@ -1,0 +1,7 @@
+batch_size: 128
+learning_rate: 0.01
+max_dropout: 0.5
+max_units: 256
+momentum: 0.9
+num_layers: 3
+weight_decay: 0.0001

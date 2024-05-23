@@ -1,0 +1,12 @@
+api:
+  _target_: mfpbench.get
+  batch_size: 256
+  datadir: ${hydra:runtime.cwd}/data/pd1-data/
+  dataset: mnist
+  model: simple_cnn
+  name: pd1
+  preload: true
+  seed: ${seed}
+  step_size: 3
+name: pd1-mnist_simplecnn_256
+tabular: false

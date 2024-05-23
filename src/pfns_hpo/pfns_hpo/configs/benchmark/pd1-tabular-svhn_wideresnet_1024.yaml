@@ -1,0 +1,12 @@
+api:
+  _target_: mfpbench.get
+  batch_size: 1024
+  datadir: ${hydra:runtime.cwd}/data/pd1-tabular/
+  dataset: svhn_no_extra
+  model: wide_resnet
+  name: pd1_tabular
+  preload: true
+  seed: ${seed}
+  step_size: 3
+name: pd1-tabular-svhn_wideresnet_1024
+tabular: true

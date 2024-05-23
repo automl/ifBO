@@ -1,0 +1,20 @@
+mf: true
+name: pfn-hebosnoek2-ei
+run_function:
+  _target_: pfns_hpo.run.run_neps
+searcher_init:
+  algorithm: mf_ei_bo
+searcher_kwargs:
+  acquisition: MFEI
+  acquisition_args: null
+  acquisition_sampler: freeze-thaw
+  acquisition_sampler_args: null
+  initial_design_budget: 1
+  initial_design_fraction: null
+  initial_design_size: 1
+  surrogate_model: pfn
+  surrogate_model_args:
+    checkpointing: true
+    model_name: hebosnoek_5M_1.pt
+    root_directory: neps_root_directory
+sh_based: false

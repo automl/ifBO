@@ -1,0 +1,19 @@
+name: lcbench-126026
+api:
+  name: lcbench
+  prior: null
+  datadir: ${hydra:runtime.cwd}/data/yahpo-gym-data
+  task_id: '126026'
+  _target_: mfpbench.get
+  step_size: 2
+  seed: ${seed}
+  preload: true
+  value_metric: val_accuracy
+tabular: false
+prior_highest_fidelity_error: 0.04583156108856201
+prior_lowest_error: 0.04361230134963989
+best_10_error: 0.05446964502334595
+best_25_error: 0.04583156108856201
+best_50_error: 0.04160362482070923
+best_90_error: 0.025567352771759033
+best_100_error: 0.03455835580825806

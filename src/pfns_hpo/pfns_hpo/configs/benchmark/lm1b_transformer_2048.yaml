@@ -1,0 +1,16 @@
+name: lm1b_transformer_2048
+api:
+  name: lm1b_transformer_2048
+  prior: null
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  step_size: 2
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.6512572765350342
+prior_lowest_error: 0.6490622758865356
+best_10_error: 0.6740200519561768
+best_25_error: 0.6512572765350342
+best_50_error: 0.6556963324546814
+best_90_error: 0.6516356468200684
+best_100_error: 0.643229603767395

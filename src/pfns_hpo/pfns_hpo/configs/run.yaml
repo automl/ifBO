@@ -1,0 +1,16 @@
+defaults:
+  - benchmark: jahs_cifar10
+  - algorithm: random_search
+  - override hydra/job_logging: full
+  - _self_
+
+experiment_group: test_${now:%Y-%m-%d-%H-%M-%S}
+experiment_name: benchmark=${benchmark.name}/algorithm=${algorithm.name}/seed=${seed}
+seed: 2
+n_workers: 1
+
+hydra:
+  run:
+    dir: results/${experiment_group}/${experiment_name}
+  job:
+    chdir: true

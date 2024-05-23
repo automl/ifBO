@@ -1,0 +1,11 @@
+name: asha
+mf: true
+sh_based: true
+run_function:
+  _target_: pfns_hpo.run.run_neps
+
+searcher_init:
+  algorithm: asha
+searcher_kwargs:
+  # _partial_: true  # To not instantiate the class directly as required by neps
+  # _target_: neps.optimizers.multi_fidelity.successive_halving.AsynchronousSuccessiveHalving

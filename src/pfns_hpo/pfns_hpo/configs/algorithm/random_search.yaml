@@ -1,0 +1,13 @@
+name: random_search
+mf: false
+sh_based: false
+run_function:
+  _target_: pfns_hpo.run.run_neps
+
+searcher_init:
+  algorithm: random_search
+searcher_kwargs:
+  use_priors: false
+  ignore_fidelity: true
+  # _partial_: true  # To not instantiate the class directly as required by neps
+  # _target_: neps.optimizers.multi_fidelity.successive_halving.AsynchronousSuccessiveHalving

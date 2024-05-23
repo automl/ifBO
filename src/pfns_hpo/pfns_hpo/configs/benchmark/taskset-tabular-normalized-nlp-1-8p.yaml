@@ -1,0 +1,13 @@
+api:
+  _target_: mfpbench.get
+  datadir: ${hydra:runtime.cwd}/data/taskset-tabular/
+  name: taskset_tabular
+  optimizer: adam8p
+  preload: true
+  seed: ${seed}
+  step_size: 3
+  task_id: FixedTextRNNClassification_imdb_patch128_LSTM128_avg_bs64
+name: taskset-tabular-normalized-nlp-1-8p
+tabular: true
+apply_user_prior_step_0_median_normalized: true
+drop_epoch_0: true

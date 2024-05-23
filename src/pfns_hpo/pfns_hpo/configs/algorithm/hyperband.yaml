@@ -1,0 +1,11 @@
+name: hyperband
+mf: true
+sh_based: true
+run_function:
+  _target_: pfns_hpo.run.run_neps
+
+searcher_init:
+  algorithm: hyperband
+searcher_kwargs:
+  # _partial_: true  # To not instantiate the class directly as required by neps
+  # _target_: neps.optimizers.multi_fidelity.hyperband.Hyperband

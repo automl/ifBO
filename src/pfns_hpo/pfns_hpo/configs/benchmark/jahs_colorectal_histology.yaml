@@ -1,0 +1,10 @@
+name: jahs_colorectal_histology
+api:
+  name: jahs
+  task_id: ColorectalHistology
+  datadir: ${hydra:runtime.cwd}/data/jahs-bench-data
+  prior: null
+  _target_: mfpbench.get
+  step_size: 3
+  seed: ${seed}
+  preload: true

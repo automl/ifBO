@@ -20,8 +20,6 @@ pip install -r requirements.txt
 
 # Setup Benchmarks
 
-# How to run an optimizer on a benchmark
-
 ```bash
 python -m mfpbench download --benchmark pd1
 python -m mfpbench download --benchmark yahpo
@@ -30,6 +28,20 @@ python -m mfpbench download --benchmark pd1-tabular
 python -m mfpbench download --benchmark lcbench-tabular
 python -m mfpbench download --benchmark taskset-tabular
 ```
+
+# Training PFNs
+
+```bash
+TODO
+```
+
+
+# How to run an optimizer on a benchmark
+
+```bash
+TODO
+```
+
 
 # To cite:
 

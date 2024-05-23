@@ -1,0 +1,14 @@
+api:
+  _target_: mfpbench.get
+  datadir: ${hydra:runtime.cwd}/data/lcbench-tabular/
+  name: lcbench_tabular
+  preload: true
+  prior: null
+  remove_constants: true
+  seed: ${seed}
+  step_size: 2
+  task_id: volkert
+  value_metric: val_accuracy
+  value_metric_test: test_accuracy
+name: lcbench-tabular-volkert
+tabular: true

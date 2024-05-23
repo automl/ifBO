@@ -1,0 +1,16 @@
+name: cifar100_wideresnet_2048
+api:
+  name: cifar100_wideresnet_2048
+  prior: null
+  datadir: ${hydra:runtime.cwd}/data/pd1-data
+  _target_: mfpbench.get
+  step_size: 3
+  seed: ${seed}
+  preload: true
+prior_highest_fidelity_error: 0.2591223418712616
+prior_lowest_error: 0.25828030705451965
+best_10_error: 0.29111090302467346
+best_25_error: 0.2591223418712616
+best_50_error: 0.30435678362846375
+best_90_error: 0.2787618935108185
+best_100_error: 0.2862457036972046
