@@ -1,6 +1,7 @@
 # Python
 __pycache__
 dist
+*.egg-info/
 
 # Log files
 *.out
