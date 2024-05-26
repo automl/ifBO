@@ -18,6 +18,22 @@ Run:
 pip install -r requirements.txt
 ```
 
+# Install JUST
+
+To install our command runner just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to $HOME/.just
+```
+
+Also, to make the `just` command available you should add
+
+```bash
+export PATH="$HOME/.just:$PATH"
+```
+
+to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
+
 # Setup Benchmarks
 
 ```bash
