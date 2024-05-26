@@ -109,12 +109,33 @@ To view all available optimizer/algorithm configurations:
 just algorithms  # | grep "pfn"
 ```
 
+The baselines from the paper:
+
+| configuration keys | names from plots in paper |
+|--|--|
+| `random_search` | Random Search |
+| `random_search` | HyperBand |
+| `random_search` | ASHA |
+| `random_search` | Freeze-Thaw with GPs |
+| `random_search` | DyHPO |
+| `random_search` | DPL |
+| `random_search` | ifBO |
+
+
+
 ## Benchmarks
 
 To view all available benchmark configurations:
 ```bash
 just benchmarks  # | grep "pd1"
 ```
+
+The benchmarks used in the paper:
+
+| configuration keys | benchmark family + task ID/name |
+|--|--|
+| `random_search` | Random Search |
+TODO.
 
 
 # To cite:
