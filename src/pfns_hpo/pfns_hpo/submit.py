@@ -141,7 +141,7 @@ def construct_moab_script(args, cluster_oe_dir):
     script.append(f"#MSUB -l pmem={memory}:ppn={ppn}")
 
     script.append("")
-    script.append("cd /work/ws/nemo/fr_hr1058-lcpfn-hpo-0")
+    script.append("cd ./lcpfn-hpo-0")
     script.append("")
     script.append("source setup_script.sh")
     script.append("")
@@ -161,7 +161,7 @@ def construct_moab_script(args, cluster_oe_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--experiment_group", default="test")
-    parser.add_argument("--server", default="kislurm") # NEW: kislurm or nemo
+    parser.add_argument("--server", default="kislurm")
     parser.add_argument("--max_tasks", default=100, type=int)
     parser.add_argument("--time", default="0-23:59")
     parser.add_argument("--job_name", default="test")

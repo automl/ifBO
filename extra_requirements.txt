@@ -1,2 +1,12 @@
 triton==2.0.0
 xgboost==1.5.2
+yahpo-gym==1.0.1
+
+
+
+# Install the required packages/sub-directories
+for dir in $(ls -d $SRC_PATH/*/); do
+	echo "Installing packages in: "$dir
+	pip install -e $dir
+	echo ""
+done

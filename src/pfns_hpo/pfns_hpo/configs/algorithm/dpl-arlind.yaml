@@ -1,5 +1,0 @@
-name: dpl-arlind  # name of yaml
-mf: True
-sh_based: False
-run_function:
-  _target_: pfns_hpo.run.run_dpl

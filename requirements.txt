@@ -115,6 +115,7 @@ urwid==2.2.2
 urwid-readline==0.13
 virtualenv==20.24.3
 Werkzeug==2.3.7
+xgboost==1.5.2
 xmltodict==0.13.0
 yacs==0.1.8
 yahpo-gym==1.0.1
