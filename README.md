@@ -72,6 +72,39 @@ This runs the *optimizer* `asha` on the benchmark instance `pd1-tabular-cifar100
 
 The format for the `just run` command is defined in `justfile` and can be adapted for custom use.
 
+## Optimizers
+
+To view all available optimizer/algorithm configurations:
+```bash
+just algorithms  # | grep "pfn"
+```
+
+The baselines from the paper:
+
+| configuration keys | names from plots in paper |
+|--|--|
+| `random_search` | Random Search |
+| `random_search` | HyperBand |
+| `random_search` | ASHA |
+| `random_search` | Freeze-Thaw with GPs |
+| `random_search` | DyHPO |
+| `random_search` | DPL |
+| `random_search` | ifBO |
+
+## Benchmarks
+
+To view all available benchmark configurations:
+```bash
+just benchmarks  # | grep "pd1"
+```
+
+The benchmarks used in the paper:
+
+| configuration keys | benchmark family + task ID/name |
+|--|--|
+| `random_search` | Random Search |
+TODO.
+
 ## Running a batch of experiments
 
 Batch files of multiple such `just run` commands can define the entire suite of experiments. Such runs can be programmatically defined as strings. Moreover, configuration files for benchmarks and algorithms can be modified, added programmatically too for scaling.
@@ -101,41 +134,6 @@ just submit random_search,asha lcbench-tabular-kr,pd1-tabular-cifar100_wideresne
 
 Here, `range(10)` would collect runs for seeds `{0, ..., 9}`.
 In all, this results into a Cartesian product of runs from (algorithms) x (benchmarks) x (seeds): `{random_search, asha}` x `{lcbench-tabular-kr,pd1-tabular-cifar100_wideresnet_2048}` x `{0, ..., 9}`.
-
-## Optimizers
-
-To view all available optimizer/algorithm configurations:
-```bash
-just algorithms  # | grep "pfn"
-```
-
-The baselines from the paper:
-
-| configuration keys | names from plots in paper |
-|--|--|
-| `random_search` | Random Search |
-| `random_search` | HyperBand |
-| `random_search` | ASHA |
-| `random_search` | Freeze-Thaw with GPs |
-| `random_search` | DyHPO |
-| `random_search` | DPL |
-| `random_search` | ifBO |
-
-
-
-## Benchmarks
-
-To view all available benchmark configurations:
-```bash
-just benchmarks  # | grep "pd1"
-```
-
-The benchmarks used in the paper:
-
-| configuration keys | benchmark family + task ID/name |
-|--|--|
-| `random_search` | Random Search |
-TODO.
 
 
 # To cite:
