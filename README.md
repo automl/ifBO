@@ -51,13 +51,17 @@ bash install.sh
 
 *NOTE*: Depending on the operating system and permissions available, this might require manual intervention
 
-# Setup Benchmarks
+## Setup Benchmarks
 
 ```bash
 python -m mfpbench download --benchmark pd1-tabular
 python -m mfpbench download --benchmark lcbench-tabular
 python -m mfpbench download --benchmark taskset-tabular
 ```
+
+## Download PFN surrogate
+
+TODO.
 
 
 # How to run an optimizer on a benchmark
@@ -84,12 +88,12 @@ The baselines from the paper:
 | configuration keys | names from plots in paper |
 |--|--|
 | `random_search` | Random Search |
-| `random_search` | HyperBand |
-| `random_search` | ASHA |
-| `random_search` | Freeze-Thaw with GPs |
-| `random_search` | DyHPO |
-| `random_search` | DPL |
-| `random_search` | ifBO |
+| `hyperband` | HyperBand |
+| `asha` | ASHA |
+| `mf_ei_bo` | Freeze-Thaw with GPs |
+| `dyhpo-neps-v2` | DyHPO |
+| `dpl-neps-max` | DPL |
+| `ifbo` | ifBO |
 
 ## Benchmarks
 
