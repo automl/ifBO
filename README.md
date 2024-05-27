@@ -2,7 +2,7 @@
 
 # Overview
 
-This repository contains code for the ICML 2024 submission: [In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization](https://openreview.net/forum?id=VyoY3Wh9Wd).
+This repository contains code for the ICML 2024 paper: [In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization](https://openreview.net/forum?id=VyoY3Wh9Wd).
 
 
 To use the `ifBO` algorithm in practice, please refer to [NePS](https://automl.github.io/neps/latest/), a package for hyperparameter optimization that maintains the latest, improved `ifBO` version (TBA, TODO).
@@ -102,12 +102,8 @@ To view all available benchmark configurations:
 just benchmarks  # | grep "pd1"
 ```
 
-The benchmarks used in the paper:
+The benchmark keys used in the paper can be found [in this file](benchmarks.md).
 
-| configuration keys | benchmark family + task ID/name |
-|--|--|
-| `random_search` | Random Search |
-TODO.
 
 ## Running a batch of experiments
 
