@@ -1,7 +1,9 @@
-# Get the absolute path of the Makefile
-PATH := $(shell cd "$(dirname "$0")" && pwd -P)
+.PHONY: install
 
-SRC_PATH = $(PATH)/src
+# Get the absolute path of the Makefile
+BASE_PATH := $(shell cd "$(dirname "$0")" && pwd -P)
+
+SRC_PATH = $(BASE_PATH)/src
 
 install:
 	@echo "The script is located at: " $(SRC_PATH)
