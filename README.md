@@ -45,8 +45,14 @@ to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 
 ## Install dependent code in editable format
 
+<!--
 ```bash
 bash install.sh
+```
+-->
+
+```bash
+make install
 ```
 
 *NOTE*: Depending on the operating system and permissions available, this might require manual intervention
