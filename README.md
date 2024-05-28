@@ -35,7 +35,7 @@ To install our command runner just you can check the [just documentation](https:
 curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to $HOME/.just
 ```
 
-Also, to make the `just` command available you should add
+Also, to make the `just` command available you should add,
 
 ```bash
 export PATH="$HOME/.just:$PATH"
@@ -64,6 +64,7 @@ python -m mfpbench download --benchmark pd1-tabular
 python -m mfpbench download --benchmark lcbench-tabular
 python -m mfpbench download --benchmark taskset-tabular
 ```
+These should create a `data/` folder at the ifBO root.
 
 ## Download PFN surrogate
 
