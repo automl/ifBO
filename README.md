@@ -29,6 +29,8 @@ pip install -r core_requirements.txt
 
 ## Install JUST
 
+(To know why you need this is recommended, scroll below!)
+
 To install our command runner just you can check the [just documentation](https://github.com/casey/just#installation), or run the below command
 
 ```bash
