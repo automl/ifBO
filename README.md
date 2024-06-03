@@ -70,7 +70,15 @@ These should create a `data/` folder at the ifBO root.
 
 ## Download PFN surrogate
 
-TODO.
+To download the surrogate used for the experiments in the paper:
+```bash
+just download_pfn
+```
+
+For subsequent updates to the surrogates, check for new versions [here](src/pfns_hpo/pfns_hpo/download.py), and run:
+```bash
+just download_pfn 0.0.2
+```
 
 
 # How to run an optimizer on a benchmark

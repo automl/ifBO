@@ -1,3 +1,8 @@
+# surrogate
+*/*.pt
+*/*.tar.gz
+
+
 training_logs/
 notebooks/
 

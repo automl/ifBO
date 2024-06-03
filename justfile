@@ -11,6 +11,12 @@
     n_workers={{n_workers}} \
     hydra/job_logging=full
 
+# Download surrogate
+@download_pfn version="0.0.1" path="./src/PFNS4HPO/final_models/":
+  python -m pfns_hpo.download \
+    --version {{version}} \
+    --path {{path}}
+
 # Submit job
 @submit algorithms benchmarks seeds="range(1)" experiment_group="test" job_name="default" partition="TODO:default-partition-name" max_tasks="1000" time="0-23:59" memory="0" n_worker="1" gpus="0":
   python -m pfns_hpo.submit \
