@@ -188,7 +188,7 @@ If using our surrogate, code, experiment setup, kindly cite using:
 @inproceedings{
   rakotoarison-icml24,
   title={In-Context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization},
-  author={Herilalaina Rakotoarison and Steven Adriaensen and Neeratyoy Mallik and Samir Garibov and Edward Bergman and Frank Hutter},
+  author={H. Rakotoarison and S. Adriaensen and N. Mallik and S. Garibov and E. Bergman and F. Hutter},
   booktitle={Forty-first International Conference on Machine Learning},
   year={2024},
   url={https://openreview.net/forum?id=VyoY3Wh9Wd}
