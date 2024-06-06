@@ -151,7 +151,7 @@ just run asha lcbench-tabular-kr test 123;
 
 ## Running on distributed clusters
 
-The atomic `just run` command allows the construction of pipelines and workflows that sweep over all required runs for experiments. Generating a file with all required run commands followed by distributing each line in the file as a job submitted to a resource is the simple core flow that can be used. 
+The atomic `just run` command allows the construction of pipelines and workflows that sweep over all required runs for experiments. Generating a file with all required run commands followed by distributing each line in the file as a job submitted to a resource is the simple core flow that can be used.
 
 Given that every distributed cluster has their own specific quirks, we focus on how a single run can be collected and expect the user to design the wrapper that distributes the required set of runs.
 
