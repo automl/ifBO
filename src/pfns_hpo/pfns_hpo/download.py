@@ -10,44 +10,58 @@ import os
 VERSION_MAP = {
     "0.0.1": dict(
         url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/surrogate.tar.gz",
-        name="bopfn_broken_unisep_1000curves_10params_2M",
+        name="surrogate",
+        final_name="bopfn_broken_unisep_1000curves_10params_2M",
+        extension="pt"
     )
 }
 
+# Helper functions to generate the file names
+FILENAME = lambda version: f"{VERSION_MAP.get(version).get('name')}.tar.gz"
+WEIGHTS_FILE_NAME = lambda version: (
+    f"{VERSION_MAP.get(version).get('name')}.{VERSION_MAP.get(version).get('extension')}"
+)
+WEIGHTS_FINAL_NAME = lambda version: (
+    f"{VERSION_MAP.get(version).get('final_name')}.{VERSION_MAP.get(version).get('extension')}"
+)
 
-def download_and_decompress(url: str, path: Path) -> None:
+
+def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
     """ Helper function to download a file from a URL and decompress it and store by given name.
     """
-
-    if isinstance(path, Path):
-        path = str(path)
-
     # Send a HTTP request to the URL of the file
-    response = requests.get(url, stream=True)
+    response = requests.get(url, allow_redirects=True)
 
+    success_flag = True
     # Check if the request is successful
     if response.status_code == 200:
-        # Write the contents of the response to a file
-        with open(path, 'wb') as file:
-            response.raw.decode_content = True
-            shutil.copyfileobj(response.raw, file)
-        
-        print(f"Downloaded the file to {path}")
+        # Save the .tar.gz file
+        with open(path, 'wb') as f:
+            f.write(response.content)
 
-        # If it's a zip file
-        if path.endswith('.zip'):
-            with zipfile.ZipFile(path, 'r') as zip_ref:
-                zip_ref.extractall(os.path.dirname(path))
-            print(f"Decompressed the zip file at {path}")
+        # Decompress the .tar.gz file
+        if path.name.endswith('.tar.gz') and path.exists:
+            os.system(f"tar -xvf {path} -C {path.parent.absolute()}")
+        else:
+            success_flag = False
+            print(f"Failed to find surrogate file at {path}!")
 
-        # If it's a tar.gz file
-        elif path.endswith('.tar.gz'):
-            with tarfile.open(path, 'r:gz') as tar_ref:
-                tar_ref.extractall(os.path.dirname(path))
-            print(f"Decompressed the tar.gz file at {path}")
+        # Rename the decompressed file
+        _path = path.parent.absolute() / WEIGHTS_FILE_NAME(version)
+        _final_path = path.parent.absolute() / WEIGHTS_FINAL_NAME(version)
+        if _path.exists():
+            os.rename(_path, path.parent.absolute() / _final_path)
+        else:
+            success_flag = False
+            print(f"Failed to find the decompressed file at {_path}!")
 
+        # Check for the final file
+        if not _final_path.exists():
+            success_flag = False
     else:
-        print(f"Failed to download the file from {url}")
+        success_flag = False
+
+    return success_flag
 
 
 def parse_args() -> argparse.Namespace:
@@ -87,8 +101,11 @@ if __name__ == "__main__":
         os.makedirs(args.path)
 
     # Use the function
-    download_and_decompress(
-        VERSION_MAP.get(args.version).get("url"), 
-        args.path / f"{VERSION_MAP.get(args.version).get('name')}.pt"
-    )
-    print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")
+    if download_and_decompress(
+        url=VERSION_MAP.get(args.version).get("url"),
+        path=args.path / FILENAME(args.version),
+        version=args.version
+    ):
+        print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")
+    else:
+        print(f"Failed to download FT-PFN v{args.version} in to {args.path}!")

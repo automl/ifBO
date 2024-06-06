@@ -338,8 +338,11 @@ def run_neps(args):
 
     if "mf" in args.algorithm and args.algorithm.mf:
         plotter = Plotter3D()
-        plotter.plot(run_path=Path().cwd())
-
+        _df = pd.read_csv(
+            Path().cwd() / "neps_root_directory" / "summary_csv" / "config_data.csv",
+            float_precision="round_trip"
+        )
+        plotter.plot3D(data=_df, run_path=Path().cwd())
 
 
 @hydra.main(config_path="configs", config_name="run", version_base="1.2")

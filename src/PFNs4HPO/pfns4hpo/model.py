@@ -8,19 +8,15 @@ class BaseModel(torch.nn.Module):
         self.name = name
         # get path of the parent directory of the current directory i.e. PFNs4HPO
         parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        name = name if ".pt" in name[-3:] else f"{name}.pt"
         try:
-            name = name if ".pt" in name[-3:] else f"{name}.pt"
             self.model = torch.load(os.path.join(parent_dir, 'final_models', f"{name}"),map_location ='cpu')
-        except:
-            executor = submitit.get_executor(
-                folder=os.path.join(parent_dir, 'training_logs/'),
-                timeout_min=1234
-            )
-            self.model = executor.get_group(self.name)[0].results()[0][2]
+        except Exception as e:
+            raise e
         self.model.eval()
 
     def forward(self, x_train, y_train, x_test):
-        raise NotImplemented
+        raise NotImplementedError
 
     @torch.no_grad()
     def predict_mean(self, x_train, y_train, x_test):

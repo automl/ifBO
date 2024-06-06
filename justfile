@@ -13,7 +13,7 @@
 
 # Download surrogate
 @download_pfn version="0.0.1" path="./src/PFNS4HPO/final_models/":
-  python -m pfns_hpo.download \
+  time python -m pfns_hpo.download \
     --version {{version}} \
     --path {{path}}
 

@@ -259,10 +259,10 @@ class Plotter3D:
     def plot(self,
              data: pd.DataFrame | None = None,
              run_path: str | Path | None = None):
-
         if run_path is None and self.data_path is None and \
-                (
-                        self.algorithm is None or self.benchmark is None or self.experiment_group is None or self.seed is None):
+        (
+            self.algorithm is None or self.benchmark is None or self.experiment_group is None or self.seed is None
+        ):
             raise ValueError("At least run_path or self.data_path or all of the arguments: "
                              "self.algorithm, self.benchmark, self.experiment_group, self.seed must be not None")
 
