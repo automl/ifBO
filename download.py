@@ -93,7 +93,7 @@ if __name__ == "__main__":
     assert args.version in VERSION_MAP, "The version provided is not available"
 
     if args.path is None:
-        args.path = Path(__file__).parent.absolute() / ".." / ".." / "PFNS4HPO" / "final_models"
+        args.path = Path(__file__).parent.absolute() / ".." / ".." / "PFNs4HPO" / "final_models"
     else:
         args.path = Path(args.path)
 
