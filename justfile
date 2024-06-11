@@ -12,7 +12,7 @@
     hydra/job_logging=full
 
 # Download surrogate
-@download_pfn version="0.0.1" path="./src/PFNS4HPO/final_models/":
+@download_pfn version="0.0.1" path="./src/PFNs4HPO/final_models/":
   time python -m pfns_hpo.download \
     --version {{version}} \
     --path {{path}}
