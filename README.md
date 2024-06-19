@@ -85,7 +85,7 @@ just download_pfn 0.0.2
 
 # How to run an optimizer on a benchmark
 
-From the root directory of `ifBO/`:
+From the root directory of `ifbo/`:
 
 ```bash
 just run asha pd1-tabular-cifar100_wideresnet_2048 test 123
@@ -99,9 +99,9 @@ The format for the `just run` command is defined in `justfile` and can be adapte
 
 Similar format as above:
 ```bash
-just run ifBO pd1-tabular-cifar100_wideresnet_2048 test 123 1
+just run ifbo pd1-tabular-cifar100_wideresnet_2048 test 123 1
 ```
-Note that `ifBO` configuration or its hyper-hyperparameters are specified in [`ifBO.yaml`](src/pfns_hpo/pfns_hpo/configs/algorithm/ifbo.yaml).
+Note that `ifbo` configuration or its hyper-hyperparameters are specified in [`ifbo.yaml`](src/pfns_hpo/pfns_hpo/configs/algorithm/ifbo.yaml).
 
 If a new surrogate is to be used or the acquisition needs to be updated, this *yaml* file needs to be updated.
 

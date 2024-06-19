@@ -25,32 +25,44 @@ def progress_noise(X, sigma, L):
 
 def add_noise_and_break(x, x_noise, Xsat, Rpsat):
     x = np.where(x < Xsat, x, Rpsat * (x - Xsat) + Xsat) # add a breaking point when saturation is reached
-    noisy_x = x + x_noise
+    return x
+    #noisy_x = x + x_noise
     # add the exponential tails to avoid negative x
     # TODO: actually make curve go to 0 in the negative range (would allow divergence beyond Y0)
-    noisy_x = np.where(noisy_x > 1/1000, noisy_x, np.exp(noisy_x-1/1000+np.log(1/1000)))
-    return noisy_x
+    #noisy_x = np.where(noisy_x > 1/1000, noisy_x, np.exp(noisy_x-1/1000+np.log(1/1000)))
+    #return noisy_x
 
 def comb(x, Y0=0.2, Yinf=0.8, sigma=0.01, L=0.0001, PREC=[100]*4, Xsat=[1.0]*4, alpha=[np.exp(1), np.exp(-1), 1+np.exp(-4), np.exp(0)], Rpsat=[1.0]*4, w=[1/4]*4):
     #x_noise = progress_noise(x,sigma,L)
-    
-    x_pow = x #add_noise_and_break(x, x_noise, Xsat[0], Rpsat[0])
-    pow_x = (((PREC[0])**(1/alpha[0])-1)/Xsat[0]*x_pow + 1)**-alpha[0]
+    x_noise = None
+    EPS = 10**-9
+    x_eps = np.array([EPS,2*EPS])
 
-    return Yinf - (Yinf - Y0)*pow_x
-    
-    #x_exp = add_noise_and_break(x, x_noise, Xsat[1], Rpsat[1])
-    #exp_x = PREC[1]**(-(x_exp/Xsat[1])**alpha[1])
+    # POW4 with exponential tail
+    x_pow = add_noise_and_break(x, x_noise, Xsat[0], Rpsat[0])
+    pow_eps = Yinf - (Yinf - Y0)*(((PREC[0])**(1/alpha[0])-1)/Xsat[0]*x_eps + 1)**-alpha[0]
+    pow_grad = (pow_eps[1] - pow_eps[0])/EPS
+    pow_y = np.where(x_pow > 0,
+                     Yinf - (Yinf - Y0)*(((PREC[0])**(1/alpha[0])-1)/Xsat[0]*x_pow + 1)**-alpha[0],
+                     Y0 * np.exp(x_pow * (pow_grad+EPS)/Y0)) 
 
-    #x_log = add_noise_and_break(x, x_noise, Xsat[2], Rpsat[2])
-    #log_x = np.log(alpha[2])/(np.log((alpha[2]**PREC[2] - alpha[2]) * x_log/Xsat[2] + alpha[2]))
+    x_exp = add_noise_and_break(x, x_noise, Xsat[1], Rpsat[1])
+    exp_eps = Yinf - (Yinf - Y0)*PREC[1]**(-(x_eps/Xsat[1])**alpha[1])
+    exp_grad = (exp_eps[1] - exp_eps[0])/EPS
+    exp_y = np.where(x_exp > 0, Yinf - (Yinf - Y0)*PREC[1]**(-(x_exp/Xsat[1])**alpha[1]), Y0 * np.exp(x_exp * (exp_grad+EPS)/Y0))
 
-    #x_hill = add_noise_and_break(x, x_noise, Xsat[3], Rpsat[3])
-    #hill_x = 1.0 / ((x_hill/Xsat[3])**alpha[3] * (PREC[3]-1) + 1)
+    x_log = add_noise_and_break(x, x_noise, Xsat[2], Rpsat[2])
+    log_eps = Yinf - (Yinf - Y0)*np.log(alpha[2])/(np.log((alpha[2]**PREC[2] - alpha[2]) * x_eps/Xsat[2] + alpha[2]))
+    log_grad = (log_eps[1] - log_eps[0])/EPS
+    log_y = np.where(x_log > 0, Yinf - (Yinf - Y0)*np.log(alpha[2])/(np.log((alpha[2]**PREC[2] - alpha[2]) * x_log/Xsat[2] + alpha[2])), Y0 * np.exp(x_log * (log_grad+EPS)/Y0))
 
-    
+    x_hill = add_noise_and_break(x, x_noise, Xsat[3], Rpsat[3])
+    hill_eps = Yinf - (Yinf - Y0) / ((x_eps/Xsat[3])**alpha[3] * (PREC[3]-1) + 1)
+    hill_grad = (hill_eps[1] - hill_eps[0])/EPS
+    hill_y = np.where(x_hill > 0, Yinf - (Yinf - Y0) / ((x_hill/Xsat[3])**alpha[3] * (PREC[3]-1) + 1), Y0 * np.exp(x_hill * (hill_grad+EPS)/Y0))
 
-    #return Yinf - (Yinf - Y0)*(w[0]*pow_x + w[1]*exp_x+ w[2]*log_x+w[3]*hill_x)
+    return w[0]*pow_y + w[1]*exp_y + w[2]*log_y + w[3]*hill_y
+                    
 
 class MLP(torch.nn.Module):
     def __init__(self, num_inputs, num_outputs):
@@ -172,10 +184,11 @@ class DatasetPrior:
         #self.output_sensitivity = np.random.uniform(size=(self.num_outputs,))
         #self.output_offset = np.random.uniform((self.output_sensitivity-1)/2,(1-self.output_sensitivity)/2)
 
-    def curves_for_configs(self, configs, noise=True):
+    def curves_for_configs(self, configs, broken=True, components={'pow','exp','hill','ilog'}, **kwargs):
         # more efficient batch-wise
-        ncurves = 1
-        bnn_outputs = self.output_for_config(configs, noise=noise)
+        basis_curves = ['pow','exp','ilog','hill']
+        ncurves = len(basis_curves)
+        bnn_outputs = self.output_for_config(configs, noise=True)
         
         indices = np.searchsorted(DatasetPrior.output_sorted, bnn_outputs, side='left')
         
@@ -188,48 +201,56 @@ class DatasetPrior:
         
         
         # sample weights for basis curves (dirichlet)
-        #w = np.stack([rng4config.gamma(a=1) for i in range(ncurves)]).T # 1, 2, 3, 4
-        #w = w/w.sum(axis=1,keepdims=1)
-    
+        w = np.stack([rng4config.gamma(a=1) for i in range(ncurves)]).T # 1, 2, 3, 4
+        
+        # filter out components to support ablations
+        for i in range(ncurves):
+            if basis_curves[i] not in components:
+                print(f"Ablation: Dropping {basis_curves[i]}")
+                w[:,i] = 0.0
+        w = w/w.sum(axis=1,keepdims=1)
+        
         # sample shape/skew parameter for each basis curve
-        alpha = np.stack([np.exp(rng4config.normal(1,1)), # 5
-                 #np.exp(rng4config.normal(0,1)), # 6
-                 #1.0+np.exp(rng4config.normal(-4,1)), # 7
-                 #np.exp(rng4config.normal(0.5,0.5))]).T # 8
-                         ]).T
+        alpha = np.stack([
+                 np.exp(rng4config.normal(1,1)), # 5
+                 np.exp(rng4config.normal(0,1)), # 6
+                 1.0+np.exp(rng4config.normal(-4,1)), # 7
+                 np.exp(rng4config.normal(0.5,0.5))]).T # 8
     
         # sample saturation x for each basis curve
         Xsat_max = 10**rng4config.normal(0,1)  # max saturation # 9
-        Xsat = Xsat_max
         
-        #Xsat_rel = np.stack([rng4config.gamma(a=1) for i in range(ncurves)]).T # relative saturation points # 10, 11, 12, 13
+        Xsat_rel = np.stack([rng4config.gamma(a=1) for i in range(ncurves)]).T # relative saturation points # 10, 11, 12, 13
         
-        #Xsat = ((Xsat_max.T * Xsat_rel.T) / np.max(Xsat_rel,axis=1)).T
-        
-        #Xsat = [Xsat_max, Xsat_max, Xsat_max, Xsat_max]
-        
+        Xsat = ((Xsat_max.T * Xsat_rel.T) / np.max(Xsat_rel,axis=1)).T
+                
         # sample relative saturation y (PREC) for each basis curve
         PREC = np.stack([1.0 / 10**rng4config.uniform(-3,0) for i in range(ncurves)]).T # 14, 15, 16, 17
+        
         # post saturation convergence/divergence rate for each basis curve
-        #Rpsat = np.stack([1.0 - rng4config.exponential(scale=1) for i in range(ncurves)]).T # 18, 19, 20, 21
+        if broken:
+            Rpsat = np.stack([1.0 - rng4config.exponential(scale=1) for i in range(ncurves)]).T # 18, 19, 20, 21
+        else:
+            #print("Ablation: Not broken")
+            Rpsat = np.ones(shape=(len(configs),ncurves))
     
         # sample noise parameters
         sigma = np.exp(rng4config.normal(loc=-5, scale=1))
-        sigma_x = [None]
         #sigma_x = np.exp(rng4config.normal(-4,0.5)) # STD of the xGP 22
         #print("warning")
         #sigma_y_scaler = np.exp(rng4config.uniform(-5,0.0)) # STD of the yGP 23
         #L = 10**rng4config.normal(-5,1) # Length-scale of the xyGP 24
         
         def foo(x_, cid=0):
-            y_ = comb(x_, Y0=Y0, Yinf=Yinf[cid], sigma=None, L=None, Xsat=[Xsat[cid]], alpha=[alpha[cid]], Rpsat=None, w=None)
-            #y_ = comb(x_, Y0=Y0, Yinf=Yinf[cid], sigma=sigma_x[cid], L=L[cid], Xsat=Xsat[cid], alpha=alpha[cid], Rpsat=Rpsat[cid], w=w[cid])
+            y_ = comb(x_, Y0=Y0, Yinf=Yinf[cid], sigma=None, L=None, Xsat=Xsat[cid], alpha=alpha[cid], Rpsat=Rpsat[cid], w=w[cid], PREC=PREC[cid])
+            #y_ = comb(x_, Y0=Y0, Yinf=Yinf[cid], sigma=sigma_x[cid], L=L[cid], Xsat=Xsat[cid], alpha=alpha[cid], Rpsat=Rpsat[cid], w=w[cid], PREC=PREC[cid])
             y_noise = np.random.normal(size=x_.shape, scale=sigma[cid])
             #y_noise = progress_noise(x_,1,L)
             #y_noise *= np.minimum(y_,1.0-y_)/4*sigma_y_scaler[cid]
             return np.clip(y_ + y_noise, 0.0, 1.0)
                 
         return foo
+
 
     def output_for_config(self, config, noise=True):
         # add aleatoric noise & bias
@@ -259,7 +280,6 @@ class DatasetPrior:
         eps = 0.5 / len(DatasetPrior.output_sorted) # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1-eps)
         return expon.ppf(u, scale=scale)
-
 
 class MyRNG:
 
@@ -296,9 +316,9 @@ class MyRNG:
         return expon.ppf(u, scale=scale)
 
 
-def curve_prior(dataset, config):
+def curve_prior(dataset, config, **kwargs):
     # calls the more efficient batch-wise method
-    return dataset.curves_for_configs(np.array([config]))
+    return dataset.curves_for_configs(np.array([config]),**kwargs)
    
 
 
@@ -320,7 +340,7 @@ def get_batch(
     
     num_params = np.random.randint(1, num_features - 1) # beware upper bound is exclusive!
 
-    dataset_prior = DatasetPrior(num_params, 5)
+    dataset_prior = DatasetPrior(num_params, 23)
     
     x = []
     y = []
@@ -360,7 +380,7 @@ def get_batch(
 
         # determine config, x, y for every curve
         curve_configs = np.random.uniform(size=(seq_len, num_params))
-        curves = dataset_prior.curves_for_configs(curve_configs)
+        curves = dataset_prior.curves_for_configs(curve_configs,**hyperparameters)
         curve_xs = []
         curve_ys = []
         for cid in range(seq_len): # loop over every curve
