@@ -73,18 +73,14 @@ class PriorDataLoader:
 
     def get_batch(self, device):
         if self.subsample == 1:
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter}", file=sys.stderr)
             _, batch_data = self.loaded_chunk[self.batch_counter]
             batch_data.x = batch_data.x.to(device)
             batch_data.y = batch_data.y.to(device)
             batch_data.target_y = batch_data.target_y.to(device)
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr)
             self.batch_counter += 1
             if self.batch_counter >= len(self.loaded_chunk):
-                print(f"load {(self.loaded_chunk_id+1) % self.n_chunks}", file=sys.stderr)
                 self._load_chunk((self.loaded_chunk_id+1) % self.n_chunks)
         else:
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} ({self.subsample_counter+1}/{self.subsample})", file=sys.stderr)
             _, full_batch_data = self.loaded_chunk[self.batch_counter]
             seq_len, batch_size = full_batch_data.y.shape
             subsample_size = batch_size // self.subsample
@@ -94,25 +90,21 @@ class PriorDataLoader:
                 batch_data = Batch(full_batch_data.x[:,l:h,:].to(device),
                                    full_batch_data.y[:,l:h].to(device),
                                    full_batch_data.target_y[:,l:h].to(device))
-                print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr)
                 self.subsample_counter += 1
             else:
                 l = subsample_size*self.subsample_counter
                 batch_data = Batch(full_batch_data.x[:,l:,:].to(device),
                                    full_batch_data.y[:,l:].to(device),
                                    full_batch_data.target_y[:,l:].to(device))
-                print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr)
                 self.subsample_counter = 0
                 self.batch_counter += 1
                 if self.batch_counter >= len(self.loaded_chunk):
-                    print(f"load {(self.loaded_chunk_id+1) % self.n_chunks}", file=sys.stderr)
                     self._load_chunk((self.loaded_chunk_id+1) % self.n_chunks)           
             
         return batch_data
 
     def get_single_eval_pos(self):
         single_eval_pos, _ = self.loaded_chunk[self.batch_counter]
-        print(f"get_single_eval_pos {self.loaded_chunk_id} - {self.batch_counter} -> {single_eval_pos}", file=sys.stderr)
         if single_eval_pos == 1000:
             print("WARNING: as a TEMP hack single eval pos = 1000 is manually corrected to 999", file=sys.stderr)
             single_eval_pos = 999
@@ -292,7 +284,6 @@ class DistributedPriorDataLoader(PriorDataLoader):
         self.data_sync()
         
         single_eval_pos, _ = self.loaded_chunk[self.batch_counter]
-        print(f"get_single_eval_pos {self.loaded_chunk_id} - {self.batch_counter} -> {single_eval_pos}", file=sys.stderr, force=True)
         if single_eval_pos == 1000:
             print("WARNING: as a TEMP hack single eval pos = 1000 is manually corrected to 999", file=sys.stderr)
             single_eval_pos = 999

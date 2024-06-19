@@ -68,7 +68,7 @@ python -m mfpbench download --benchmark taskset-tabular
 ```
 These should create a `data/` folder at the ifBO root.
 
-## Download PFN surrogate
+## PFN surrogate
 
 To download the surrogate used for the experiments in the paper:
 ```bash
@@ -81,6 +81,8 @@ For subsequent updates to the surrogates, check for new versions [here](src/pfns
 ```bash
 just download_pfn 0.0.2
 ```
+
+Refer to ``src/PFNs4HPO/``, you are interested in retraing FT-PFN.
 
 
 # How to run an optimizer on a benchmark
