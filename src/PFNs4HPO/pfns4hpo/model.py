@@ -1,6 +1,6 @@
-import sys, os
+import os
 import torch
-import submitit
+
 
 class BaseModel(torch.nn.Module):
     def __init__(self, name):
@@ -10,7 +10,9 @@ class BaseModel(torch.nn.Module):
         parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
         name = name if ".pt" in name[-3:] else f"{name}.pt"
         try:
-            self.model = torch.load(os.path.join(parent_dir, 'final_models', f"{name}"),map_location ='cpu')
+            self.model = torch.load(
+                os.path.join(parent_dir, "final_models", f"{name}"), map_location="cpu"
+            )
         except Exception as e:
             raise e
         self.model.eval()
@@ -22,7 +24,7 @@ class BaseModel(torch.nn.Module):
     def predict_mean(self, x_train, y_train, x_test):
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
         return self.model.criterion.mean(logits)
-    
+
     @torch.no_grad()
     def predict_mean_variance(self, x_train, y_train, x_test):
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
@@ -37,12 +39,12 @@ class BaseModel(torch.nn.Module):
     def nll_loss(self, x_train, y_train, x_test, y_test):
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
         return self.model.criterion(logits, y_test)
-    
+
     @torch.no_grad()
     def get_ucb(self, x_train, y_train, x_test):
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
         return self.model.criterion.ucb(logits, best_f=None)
-    
+
     @torch.no_grad()
     def get_ei(self, x_train, y_train, x_test, f_best):
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
@@ -56,20 +58,14 @@ class PFN_MODEL(BaseModel):
         elif x_train[:, 0].min() == 0:
             x_train[:, 0] += 1
             x_test[:, 0] += 1
-        
+
+            # reserve id=0 to curves that are not in x_train
             # set to 0 for all id in x_test[:, 0] that is not x_train[:, 0]
             x_test[:, 0] = torch.where(
                 torch.isin(x_test[:, 0], x_train[:, 0]),
                 x_test[:, 0],
-                torch.zeros_like(x_test[:, 0])
+                torch.zeros_like(x_test[:, 0]),
             )
-        
-        if "lcnet_prior" in self.name: # hotfix for lcnet
-            x_train = x_train.clone()
-            x_test = x_test.clone()
-            if x_train.shape[0] > 0:
-                x_train[..., 1] = (x_train[..., 1] * 51).int()
-            x_test[..., 1] = (x_test[..., 1] * 51).int()
 
         single_eval_pos = x_train.shape[0]
         batch_size = 2000
@@ -86,4 +82,3 @@ class PFN_MODEL(BaseModel):
 
         final_result = torch.cat(results, dim=0)
         return final_result
-

@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 
 import torch
 from pfns4hpo import bar_distribution, encoders, priors, train, utils
@@ -147,7 +148,7 @@ def main(configs):
     )
 
     _, _, model, _ = train.train(**configs_train)
-    torch.save(model, configs["output_file"])
+    torch.save(model, os.path.join("final_models", configs["output_file"]))
 
 
 if __name__ == "__main__":
