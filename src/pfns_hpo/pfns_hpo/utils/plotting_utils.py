@@ -11,6 +11,9 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import sem
 from typing_extensions import List
 
+from tueplots import bundles, figsizes, fontsizes
+plt.rcParams.update(bundles.icml2024(column="full"))
+
 
 MAX_N_COLS = 3
 PLOT_SIZE = 5
@@ -86,8 +89,13 @@ def group_run_dataframes(
     if kwargs.get("analysis", False):
         df_values = np.array(smooth_gaussian(df_values, sigma=0.35))
 
-    mean_df = pd.Series(df_values.mean(axis=0), index=union_index).sort_index()
-    sem_df = pd.Series(sem(df_values, axis=0), index=union_index).sort_index()
+    if kwargs.get("nanmean", False):
+        df_values_ = np.nan_to_num(df_values, nan=1)
+        mean_df = pd.Series(df_values_.mean(axis=0), index=union_index).sort_index() 
+        sem_df = pd.Series(sem(df_values_, axis=0), index=union_index).sort_index()
+    else:
+        mean_df = pd.Series(df_values.mean(axis=0), index=union_index).sort_index()
+        sem_df = pd.Series(sem(df_values, axis=0), index=union_index).sort_index()
 
     return mean_df, sem_df
 
@@ -424,7 +432,8 @@ def get_per_benchmark_plot(
     print(f"\nPlot saved as {target}\n")
 
 
-def get_rank_plot(plot_data: dict,
+def get_rank_plot(
+    plot_data: dict,
     output_path: Path,
     filename: str,
     x_range: tuple=None,
@@ -436,7 +445,14 @@ def get_rank_plot(plot_data: dict,
     overhead: bool = False,
 ) -> None:
 
-    fig, ax = plt.subplots(1, 1, figsize=(PLOT_SIZE * 2, int(PLOT_SIZE * 1.5)))
+    plt.rcParams.update(figsizes.icml2024_full(nrows=1, ncols=1, height_to_width_ratio=.8))
+    plt.rcParams.update(fontsizes.icml2024())
+    plt.rcParams['xtick.labelsize'] = 100  # Adjust the size to your preference
+    plt.rcParams['ytick.labelsize'] = 100  # Adjust the size to your preference
+    plt.rcParams['axes.labelsize'] = 100
+
+    # fig, ax = plt.subplots(1, 1 , figsize=(PLOT_SIZE * 2, int(PLOT_SIZE * 1.5)))
+    fig, ax = plt.subplots(1, 1 , figsize=(10 * 2, int(10 * 1.5)))   
     df_rank = pd.DataFrame()
 
     l_datasets = list(plot_data.keys())
@@ -477,35 +493,75 @@ def get_rank_plot(plot_data: dict,
     df_rank = df_rank.reset_index().sort_values(aggregate_by, ascending=True)
     ordered_algos = df_rank[df_rank.loc[:, aggregate_by] == df_rank.loc[: ,aggregate_by].max()][["model", "mean"]].sort_values("mean", ascending=False).model.tolist()
 
+    new_indices = np.linspace(start=0, stop=1000000, endpoint=True, num=100) 
+    _mean_rank = np.mean(np.arange(1, len(ordered_algos)+1))  # .astype(int)
+    _dummy_row = pd.Series([_mean_rank], index=[0])
+
+    import os
+    _files = os.listdir()
+    if "lcbench.parquet.gzip" not in _files and "pd1.parquet.gzip" not in _files and "taskset.parquet.gzip" not in _files and "all.parquet.gzip" not in _files:
+        df_rank.to_parquet("./lcbench.parquet.gzip")
+        print("Saving ./lcbench.parquet.gzip")    
+    elif "lcbench.parquet.gzip" in _files and "pd1.parquet.gzip" not in _files and "taskset.parquet.gzip" not in _files and "all.parquet.gzip" not in _files:    
+        df_rank.to_parquet("./pd1.parquet.gzip")
+        print("Saving ./pd1.parquet.gzip")    
+    elif "lcbench.parquet.gzip" in _files and "pd1.parquet.gzip" in _files and "taskset.parquet.gzip" not in _files and "all.parquet.gzip" not in _files:
+        df_rank.to_parquet("./taskset.parquet.gzip")
+        print("Saving ./taskset.parquet.gzip")    
+    elif "lcbench.parquet.gzip" in _files and "pd1.parquet.gzip" in _files and "taskset.parquet.gzip" in _files and "all.parquet.gzip" not in _files:
+        df_rank.to_parquet("./all.parquet.gzip")
+        print("Saving ./all.parquet.gzip")    
+
+
     for i, algo in enumerate(ordered_algos):
-        ax.plot(
-            df_rank[df_rank.model == algo].loc[:, aggregate_by].values, 
-            df_rank[df_rank.model == algo]["mean"].values,
+        _new_indices = new_indices[new_indices <= df_rank[df_rank.model == algo]["mean"].index.max()]  # keeping only the times see
+
+        _df_mean = pd.concat((_dummy_row, df_rank[df_rank.model == algo]["mean"])).sort_index()
+        _df_mean = _df_mean.loc[~_df_mean.index.duplicated(keep="first")]
+        _df_sem = pd.concat((_dummy_row, df_rank[df_rank.model == algo]["sem"])).sort_index()
+        _df_sem = _df_sem.loc[~_df_sem.index.duplicated(keep="first")]
+
+        _mean = _df_mean.reindex(_new_indices, method="ffill") 
+        _sem = _df_sem.reindex(_new_indices, method="ffill") 
+
+        ax.plot(   
+            # df_rank[df_rank.model == algo].loc[:, aggregate_by].values, 
+            _mean.index.values,
+            _mean.values, 
+            # df_rank[df_rank.model == algo]["mean"].values,
             color=color_map[algo],
             marker=marker_map[algo],
             markevery=50,
             **marker_args,
-            label=label_map[algo]
+            label=label_map[algo],
+            linewidth=20,
         )
         ax.fill_between(
-            df_rank[df_rank.model == algo].loc[:, aggregate_by].values,
-            df_rank[df_rank.model == algo]["mean"].values - df_rank[df_rank.model == algo]["sem"].values, 
-            df_rank[df_rank.model == algo]["mean"].values + df_rank[df_rank.model == algo]["sem"].values,
+            # df_rank[df_rank.model == algo].loc[:, aggregate_by].values,
+            _mean.index.values,
+            _mean.values - _sem.values,
+            _mean.values + _sem.values,
+            # df_rank[df_rank.model == algo]["mean"].values - df_rank[df_rank.model == algo]["sem"].values, 
+            # df_rank[df_rank.model == algo]["mean"].values + df_rank[df_rank.model == algo]["sem"].values,
             facecolor=color_map[algo],
             alpha=0.1,
             step="post"
         )
-    ax.set_ylim(0, len(l_algos))
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.set_ylim(1, len(l_algos))
+    # ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.tick_params(axis='x', labelsize=100)
+    ax.tick_params(axis='y', labelsize=100)
 
-    fig.supylabel("Rank")
+    fig.legend(prop={"size": 100})
+
+    fig.supylabel("Rank", fontsize=100)
     
     if wallclock:
-        fig.supxlabel("Wallclock time (in s)")
+        fig.supxlabel("Wallclock time (in s)", fontsize=100)
     elif not wallclock and overhead: 
-        fig.supxlabel("Only overhead time (in s)")
+        fig.supxlabel("Only overhead time (in s)", fontsize=100)
     else: 
-        fig.supxlabel("Total epochs spent")
+        fig.supxlabel("Total epochs spent", fontsize=100)
     
     # if wallclock or overhead:
     #     ax.set_xscale("log")

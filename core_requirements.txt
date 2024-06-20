@@ -29,3 +29,4 @@ python-git-info==0.8.3
 tueplots==0.0.15
 tensorflow==2.14.1
 psutil==6.0.0
+hickle==5.0.3

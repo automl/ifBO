@@ -9,11 +9,17 @@ To use the `ifBO` for hyperparameter tuning in practice, please refer to [NePS](
 
 The `main` branch provides the `Freeze-Thaw PFN surrogate (FT-PFN)` surrogate model as a drop-in surrogate for multi-fidelity Bayesian Optimization loops. Along with the synthetic prior generation and training code.
 
+### Table of Contents
+1. [Setup](#setup)
+2. [How to run an optimizer on a benchmark](#how-to-run-an-optimizer-on-a-benchmark)
+3. [Plot results](#plot-results)
+
+
 # Setup
 
 All the following commands assume the working directory to be the root level of the `ifBO/` repo.
 
-## Install dependencies
+### Install dependencies
 
 Install `Python 3.10.12` and `pip`.
 
@@ -27,7 +33,7 @@ pip install -r core_requirements.txt
 * `nvidia_requirements.txt`: system-dependent base packages omitted from `requirements.txt`
 * `extra_requirements.txt`: packages omitted from `requirements.txt` that has issues installing on Mac OS 14.2 when installing in bulk
 
-## Install JUST
+### Install JUST
 
 (To know why you need this is recommended, scroll below!)
 
@@ -45,7 +51,7 @@ export PATH="$HOME/.just:$PATH"
 
 to your `.zshrc` / `.bashrc` or alternatively simply run the export manually.
 
-## Install dependent code in editable format
+### Install dependent code in editable format
 
 <!--
 ```bash
@@ -59,7 +65,7 @@ make install
 
 *NOTE*: Depending on the operating system and permissions available, this might require manual intervention
 
-## Setup Benchmarks
+### Setup Benchmarks
 
 ```bash
 python -m mfpbench download --benchmark pd1-tabular
@@ -68,7 +74,7 @@ python -m mfpbench download --benchmark taskset-tabular
 ```
 These should create a `data/` folder at the ifBO root.
 
-## PFN surrogate
+### PFN surrogate
 
 To download the surrogate used for the experiments in the paper:
 ```bash
@@ -97,7 +103,8 @@ This runs the *optimizer* `asha` on the benchmark instance `pd1-tabular-cifar100
 
 The format for the `just run` command is defined in `justfile` and can be adapted for custom use.
 
-## Running ifBO on a benchmark
+
+### Running ifBO on a benchmark
 
 Similar format as above:
 ```bash
@@ -107,7 +114,7 @@ Note that `ifbo` configuration or its hyper-hyperparameters are specified in [`i
 
 If a new surrogate is to be used or the acquisition needs to be updated, this *yaml* file needs to be updated.
 
-## Optimizers
+### Optimizers
 
 To view all available optimizer/algorithm configurations:
 ```bash
@@ -126,7 +133,7 @@ The baselines from the paper:
 | `dpl-neps-max` | DPL |
 | `ifbo` | ifBO |
 
-## Benchmarks
+### Benchmarks
 
 To view all available benchmark configurations:
 ```bash
@@ -136,7 +143,7 @@ just benchmarks  # | grep "pd1"
 The benchmark keys used in the paper can be found [in this file](benchmarks.md).
 
 
-## Running a batch of experiments
+### Running a batch of experiments
 
 Batch files of multiple such `just run` commands can define the entire suite of experiments. Such runs can be programmatically defined as strings. Moreover, configuration files for benchmarks and algorithms can be modified, added programmatically too for scaling.
 
@@ -151,7 +158,7 @@ just run asha lcbench-tabular-kr test 123;
 
 ```
 
-## Running on distributed clusters
+### Running on distributed clusters
 
 The atomic `just run` command allows the construction of pipelines and workflows that sweep over all required runs for experiments. Generating a file with all required run commands followed by distributing each line in the file as a job submitted to a resource is the simple core flow that can be used.
 
@@ -166,7 +173,7 @@ just submit random_search,asha lcbench-tabular-kr,pd1-tabular-cifar100_wideresne
 Here, `range(10)` would collect runs for seeds `{0, ..., 9}`.
 In all, this results into a Cartesian product of runs from (algorithms) x (benchmarks) x (seeds): `{random_search, asha}` x `{lcbench-tabular-kr,pd1-tabular-cifar100_wideresnet_2048}` x `{0, ..., 9}`.
 
-# Runtime info
+### Runtime info
 
 Here we list some possible keypoints regarding our code framework that can assist in debugging if any errors show up:
 
@@ -182,6 +189,11 @@ Here we list some possible keypoints regarding our code framework that can assis
 **NOTE**: All optimizers will continue its optimization if running on the same output directory and HPO budget is remaining. To start a new run, set `overwrite=True` in `pfns_hpo/run.py` at a global scope or set the flag `overwrite_working_directory` in `neps.run()` in `pfns_hpo/run.py`
 
 **NOTE, again**: Launching multiple `just run ...` pointing to the same output directory (i.e., same algorithm-benchmark-seed-exp_group) will trigger a multi-worker parallel HPO. All experiments here are assumed to be single worker runs for fair comparison.
+
+# Plot results
+
+To regenerate Figure 3 in the main paper, first download data ([bounds](http://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/bounds.hkl) and [results](http://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/allresults.hkl) files), then run ``bash plot.sh``.
+
 
 # To cite:
 
