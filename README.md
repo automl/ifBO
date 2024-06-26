@@ -13,11 +13,6 @@ To use the `ifBO` algorithm in practice, please refer to [NePS](https://automl.g
 | -------- | -------- | -------- |
 | 0.0.1 | ICML '24 submission | FT-PFN from ifBO, trained on LCNet curves, DPL power law, broke scaling law |
 
-### Download surrogate
-
-```bash
-python download.py --version 0.0.1
-```
 
 # Surrogate usage API
 
