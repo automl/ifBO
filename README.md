@@ -1,12 +1,8 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2105.09821-b31b1b.svg)](https://arxiv.org/abs/2404.16795)
 
-# Overview
+# In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization
 
-This repository contains code for the ICML 2024 submission: [In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization](https://openreview.net/forum?id=VyoY3Wh9Wd).
-
-This `main` branch provides the `Freeze-Thaw PFN surrogate (FT-PFN)` surrogate model as a drop-in surrogate for multi-fidelity Bayesian Optimization loops. Along with the synthetic prior generation and training code.
-
-To reproduce experiments from the above paper version, please refer to the branch [`icml-2024`](https://github.com/automl/ifBO/tree/icml-2024).
+This repository contains the official code for our [ICML 2024 paper](https://openreview.net/forum?id=VyoY3Wh9Wd). This `main` branch provides the `Freeze-Thaw PFN surrogate (FT-PFN)` surrogate model as a drop-in surrogate for multi-fidelity Bayesian Optimization loops. Along with the synthetic prior generation and training code. To reproduce experiments from the above paper version, please refer to the branch [`icml-2024`](https://github.com/automl/ifBO/tree/icml-2024).
 
 To use the `ifBO` algorithm in practice, please refer to [NePS](https://automl.github.io/neps/latest/), a package for hyperparameter optimization that maintains the latest, improved `ifBO` version (TBA, TODO).
 
@@ -17,7 +13,7 @@ To use the `ifBO` algorithm in practice, please refer to [NePS](https://automl.g
 | -------- | -------- | -------- |
 | 0.0.1 | ICML '24 submission | FT-PFN from ifBO, trained on LCNet curves, DPL power law, broke scaling law |
 
-# Download surrogate
+### Download surrogate
 
 ```bash
 python download.py --version 0.0.1
