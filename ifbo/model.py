@@ -36,7 +36,7 @@ class Surrogate(torch.nn.Module):
     ) -> List[PredictionResult]:
         x_train, y_train, x_test = tokenize(context, query)
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        results = torch.split(logits, [len(curve.x) for curve in query], dim=0)
+        results = torch.split(logits, [len(curve.t) for curve in query], dim=0)
         return [
             PredictionResult(
                 hyperparameters=curve.hyperparameters,
