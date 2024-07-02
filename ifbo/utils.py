@@ -7,8 +7,10 @@ import itertools
 
 import torch
 from torch import nn
+from ifbo import Curve
 from torch.optim.lr_scheduler import LambdaLR
 import numpy as np
+from typing import Tuple, List, Dict
 
 # copied from huggingface
 def get_cosine_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, num_cycles=0.5, last_epoch=-1):
@@ -307,3 +309,47 @@ def print_once(*msgs: str):
     if msg not in printed_already:
         print(msg)
         printed_already.add(msg)
+
+def tokenize(context: List[Curve], query: List[Curve]) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    # takes as input a list of curves and query points (does not have y values)
+    # returns the tokenized representation of 
+    #   - context curves: ([id curve, x value, configuration]) and the corresponding y values. 
+    #   - query points: ([id curve, x value, configuration])
+    # The id curve is a unique identifier for each curve in the context.
+
+    config_to_id: Dict[torch.Tensor, int] = {}
+    context_tokens = []
+    context_y_values = []
+    query_tokens = []
+    current_id = 1
+
+    def get_curve_id(configuration: torch.Tensor) -> int:
+        nonlocal current_id
+        for config, cid in config_to_id.items():
+            if torch.equal(config, configuration):
+                return cid
+        config_to_id[configuration] = current_id
+        current_id += 1
+        return config_to_id[configuration]
+
+    for curve in context:
+        curve_id = get_curve_id(curve.configuration)
+        num_points = curve.x.size(0)
+        for i in range(num_points):
+            context_tokens.append(torch.cat((torch.tensor([curve_id, curve.x[i].item()]), curve.configuration)))
+            context_y_values.append(curve.y[i])
+
+    for curve in query:
+        curve_id = get_curve_id(curve.configuration)
+        num_points = curve.x.size(0)
+        for i in range(num_points):
+            query_tokens.append(torch.cat((torch.tensor([curve_id, curve.x[i].item()]), curve.configuration)))
+
+    # Convert lists to tensors
+    context_tokens_tensor = torch.stack(context_tokens, dim=0)
+    context_y_values_tensor = torch.tensor(context_y_values, dim=0)
+    query_tokens_tensor = torch.stack(query_tokens, dim=0)
+
+    return context_tokens_tensor, context_y_values_tensor, query_tokens_tensor
+
+    

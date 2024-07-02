@@ -1,59 +1,79 @@
 import os
 import torch
+from ifbo import Curve, PredictionResult
+from ifbo.utils import tokenize
 from pathlib import Path
+from typing import List
 from .download import download_and_decompress, VERSION_MAP, FILENAME, WEIGHTS_FINAL_NAME
+
 
 class Surrogate(torch.nn.Module):
     def __init__(self, version: str = "0.0.1"):
         super(Surrogate, self).__init__()
-        trained_models_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "trained_models"))
-        
+        trained_models_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "trained_models")
+        )
+
         if version not in VERSION_MAP:
             raise ValueError(f"Version {version} is not available")
 
         dest_path = Path(trained_models_path) / FILENAME(version)
-        
+
         if not dest_path.exists():
             download_and_decompress(
-                url=VERSION_MAP.get(version).get("url"),
-                path=dest_path,
-                version=version
+                url=VERSION_MAP.get(version).get("url"), path=dest_path, version=version
             )
-        
-        self.model = torch.load(os.path.join(trained_models_path, WEIGHTS_FINAL_NAME(version)), map_location="cpu")
+
+        self.model = torch.load(
+            os.path.join(trained_models_path, WEIGHTS_FINAL_NAME(version)),
+            map_location="cpu",
+        )
         self.model.eval()
 
     @torch.no_grad()
-    def predict_mean(self, x_train, y_train, x_test):
+    def predict(
+        self, context: List[Curve], query: List[Curve]
+    ) -> List[PredictionResult]:
+        x_train, y_train, x_test = tokenize(context, query)
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return self.model.criterion.mean(logits)
+        results = torch.split(logits, [len(curve.x) for curve in query], dim=0)
+        return [
+            PredictionResult(
+                hyperparameters=curve.hyperparameters,
+                t=curve.t,
+                logits=logit,
+                criterion=self.model.criterion,
+            )
+            for curve, logit in zip(query, results)
+        ]
 
-    @torch.no_grad()
-    def predict_mean_variance(self, x_train, y_train, x_test):
-        logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return self.model.criterion.mean(logits), self.model.criterion.variance(logits)
-
-    @torch.no_grad()
-    def predict_quantiles(self, x_train, y_train, x_test, qs):
-        logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return torch.cat([self.model.criterion.icdf(logits, q) for q in qs], dim=1)
-
-    @torch.no_grad()
-    def nll_loss(self, x_train, y_train, x_test, y_test):
-        logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return self.model.criterion(logits, y_test)
-
-    @torch.no_grad()
-    def get_ucb(self, x_train, y_train, x_test):
-        logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return self.model.criterion.ucb(logits, best_f=None)
-
-    @torch.no_grad()
-    def get_ei(self, x_train, y_train, x_test, f_best):
-        logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
-        return self.model.criterion.ei(logits, best_f=f_best)
+    def check_input(self, x_train, y_train, x_test):
+        if y_train.min() < 0 or y_train.max() > 1:
+            raise Exception("y values should be in the range [0,1]")
+        if (
+            x_train[:, 1] < 0
+            or x_train[:, 1] > 1
+            or x_test[:, 1] < 0
+            or x_test[:, 1] > 1
+        ):
+            raise Exception("step values should be in the range [0,1]")
+        if (
+            x_train[:, 0].min() < 0
+            or x_train[:, 0].max() > 1000
+            or x_test[:, 0].min() < 0
+            or x_test[:, 0].max() > 1000
+        ):
+            raise Exception("id values should be in the range [0,1000]")
+        if (
+            x_train[:, 2:].min() < 0
+            or x_train[:, 2:].max() > 1
+            or x_test[:, 2:].min() < 0
+            or x_test[:, 2:].max() > 1
+        ):
+            raise Exception("hyperparameter values should be in the range [0,1]")
 
     def forward(self, x_train, y_train, x_test):
+        self.check_input(x_train, y_train, x_test)
         if x_train.shape[0] == 0:
             x_test[:, 0] = 0
         elif x_train[:, 0].min() == 0:
@@ -81,5 +101,4 @@ class Surrogate(torch.nn.Module):
             result = self.model((x_batch, y_batch), single_eval_pos=single_eval_pos)
             results.append(result)
 
-        final_result = torch.cat(results, dim=0)
-        return final_result
+        return torch.cat(results, dim=0)
