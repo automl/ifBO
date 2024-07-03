@@ -6,6 +6,14 @@ This repository contains the official code for our [ICML 2024 paper](https://ope
 
 To use the `ifBO` algorithm in practice, please refer to [NePS](https://automl.github.io/neps/latest/), a package for hyperparameter optimization that maintains the latest, improved `ifBO` version (TBA, TODO).
 
+# Setup
+
+```bash
+conda create -n ifBO-env python=3.10 setuptools
+conda activate ifBO-env
+pip install -e .
+```
+
 
 # Surrogate versions
 
