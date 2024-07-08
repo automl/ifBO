@@ -1,3 +1,5 @@
+import os
+import warnings
 import torch
 import math
 import numpy as np
@@ -6,6 +8,9 @@ from ifbo.encoders import Normalize
 from ifbo.priors.utils import Batch
 from ifbo.utils import default_device
 from ifbo import encoders
+from ifbo.utils import detokenize
+
+OUTPUT_SORTED = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "output_sorted.npy"))
 
 
 def progress_noise(X, sigma, L):
@@ -161,8 +166,6 @@ class MLP(torch.nn.Module):
 
 
 class DatasetPrior:
-    output_sorted = None
-
     def _get_model(self):
         return MLP(self.num_inputs, self.num_outputs).to("cpu")
 
@@ -189,23 +192,6 @@ class DatasetPrior:
 
         self.normalizer = Normalize(0.5, math.sqrt(1 / 12))
 
-        if DatasetPrior.output_sorted is None:
-            # generate 1M samples to approximate the CDF of the BNN output distribution
-            output = torch.zeros((N_datasets, N_per_dataset, num_outputs))
-            input = torch.from_numpy(
-                np.random.uniform(size=(N_datasets, N_per_dataset, self.num_inputs))
-            ).to(torch.float32)
-            with torch.no_grad():
-                for i in range(N_datasets):
-                    if i % 100 == 99:
-                        print(f"{i+1}/{N_datasets}")
-                    # sample a new dataset
-                    self.new_dataset()
-                    for j in range(N_per_dataset):
-                        output_ij = self._output_for(input[i, j])
-                        output[i, j, :] = output_ij
-                DatasetPrior.output_sorted = np.sort(torch.flatten(output).numpy())
-
         self.new_dataset()
 
     def new_dataset(self):
@@ -231,7 +217,7 @@ class DatasetPrior:
         ncurves = 4
         bnn_outputs = self.output_for_config(configs, noise=noise)
 
-        indices = np.searchsorted(DatasetPrior.output_sorted, bnn_outputs, side="left")
+        indices = np.searchsorted(OUTPUT_SORTED, bnn_outputs, side="left")
 
         rng4config = MyRNG(indices)
 
@@ -281,6 +267,7 @@ class DatasetPrior:
         # L = 10**rng4config.normal(-5,1) # Length-scale of the xyGP 24
 
         def foo(x_, cid=0):
+            warnings.filterwarnings("ignore")
             y_ = comb(
                 x_,
                 Y0=Y0,
@@ -307,26 +294,26 @@ class DatasetPrior:
         return output.numpy()
 
     def uniform(self, bnn_output, a=0.0, b=1.0):
-        indices = np.searchsorted(DatasetPrior.output_sorted, bnn_output, side="left")
-        return (b - a) * indices / len(DatasetPrior.output_sorted) + a
+        indices = np.searchsorted(OUTPUT_SORTED, bnn_output, side="left")
+        return (b - a) * indices / len(OUTPUT_SORTED) + a
 
     def normal(self, bnn_output, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return norm.ppf(u, loc=loc, scale=scale)
 
     def beta(self, bnn_output, a=1, b=1, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return beta.ppf(u, a=a, b=b, loc=loc, scale=scale)
 
     def gamma(self, bnn_output, a=1, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return gamma.ppf(u, a=a, loc=loc, scale=scale)
 
     def exponential(self, bnn_output, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return expon.ppf(u, scale=scale)
 
@@ -340,27 +327,27 @@ class MyRNG:
         self.counter = 0
 
     def uniform(self, a=0.0, b=1.0):
-        u = (b - a) * self.indices[self.counter] / len(DatasetPrior.output_sorted) + a
+        u = (b - a) * self.indices[self.counter] / len(OUTPUT_SORTED) + a
         self.counter += 1
         return u
 
     def normal(self, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return norm.ppf(u, loc=loc, scale=scale)
 
     def beta(self, a=1, b=1, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return beta.ppf(u, a=a, b=b, loc=loc, scale=scale)
 
     def gamma(self, a=1, loc=0, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return gamma.ppf(u, a=a, loc=loc, scale=scale)
 
     def exponential(self, scale=1):
-        eps = 0.5 / len(DatasetPrior.output_sorted)  # to avoid infinite samples
+        eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return expon.ppf(u, scale=scale)
 
@@ -385,9 +372,12 @@ def get_batch(
     assert num_features >= 2
     EPS = 10**-9
 
-    num_params = np.random.randint(
-        1, num_features - 1
-    )  # beware upper bound is exclusive!
+    if hyperparameters is not None and "hp_dim" in hyperparameters:
+        num_params = hyperparameters["hp_dim"]
+    else:
+        num_params = np.random.randint(
+            1, num_features - 1
+        )  # beware upper bound is exclusive!
 
     dataset_prior = DatasetPrior(num_params, 23)
 
@@ -504,3 +494,12 @@ class MultiCurvesEncoder(torch.nn.Module):
 
 def get_encoder():
     return lambda num_features, emsize: MultiCurvesEncoder(num_features, emsize)
+
+
+def sample_curves(num_hyperparameters=1000, curve_length=100, hyperparameter_dimensions=2):
+    dataset_prior = DatasetPrior(hyperparameter_dimensions, 23)
+    hyperparameters = np.random.uniform(size=(num_hyperparameters, hyperparameter_dimensions))
+    dataset_prior.new_dataset()
+    curve_sampler = dataset_prior.curves_for_configs(hyperparameters)
+    curves = np.array([curve_sampler(x_=np.linspace(0, 1, curve_length), cid=cid) for cid in range(num_hyperparameters)])
+    return hyperparameters, curves
