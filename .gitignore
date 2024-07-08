@@ -1,0 +1,15 @@
+__pycache__/
+
+*data*/
+*build*/
+*dist*/
+*output*/
+*result*/
+
+*.ipynb
+*.json
+*.csv
+*.pkl
+*.pt
+*.pth
+*.sh

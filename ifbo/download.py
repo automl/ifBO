@@ -1,6 +1,8 @@
+import argparse
 from pathlib import Path
 import requests
 import os
+
 
 VERSION_MAP = {
     "0.0.1": dict(
@@ -48,3 +50,50 @@ def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
         print(f"Failed to download and decompress the file at {path}!")
     
     return success_flag
+
+
+def parse_args() -> argparse.Namespace:
+    """ Helper function to parse the command line arguments.
+    """
+    args = argparse.ArgumentParser()
+
+    args.add_argument(
+        "--version",
+        type=str,
+        default="0.0.1",
+        help="The version of the PFN model to download"
+    )
+    args.add_argument(
+        "--path",
+        type=str,
+        default=None,
+        help="The path to save the downloaded file"
+    )
+
+    parser = args.parse_args()
+    return parser
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
+
+    assert args.version in VERSION_MAP, "The version provided is not available"
+
+    if args.path is None:
+        args.path = Path(__file__).parent.absolute() / ".." / ".." / "PFNS4HPO" / "final_models"
+    else:
+        args.path = Path(args.path)
+
+    if not args.path.exists():
+        os.makedirs(args.path)
+
+    # Use the function
+    if download_and_decompress(
+        url=VERSION_MAP.get(args.version).get("url"),
+        path=args.path / FILENAME(args.version),
+        version=args.version
+    ):
+        print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")
+    else:
+        print(f"Failed to download FT-PFN v{args.version} in to {args.path}!")
