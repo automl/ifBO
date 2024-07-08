@@ -15,6 +15,8 @@ VERSION_MAP = {
 
 # Helper functions to generate the file names
 FILENAME = lambda version: f"{VERSION_MAP.get(version).get('name')}.tar.gz"
+FILE_URL = lambda version: f"{VERSION_MAP.get(version).get('url')}"
+
 WEIGHTS_FILE_NAME = lambda version: (
     f"{VERSION_MAP.get(version).get('name')}.{VERSION_MAP.get(version).get('extension')}"
 )
@@ -25,6 +27,14 @@ WEIGHTS_FINAL_NAME = lambda version: (
 
 def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
     """ Helper function to download a file from a URL and decompress it and store by given name.
+
+    Args:
+        url (str): URL of the file to download
+        path (Path): Path along with filename to save the downloaded file
+        version (str, optional): Version of the model. Defaults to "0.0.1".
+
+    Returns:
+        bool: Flag to indicate if the download and decompression was successful
     """
     # Send a HTTP request to the URL of the file
     response = requests.get(url, allow_redirects=True)
@@ -45,9 +55,9 @@ def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
         success_flag = False
 
     if success_flag:
-        print(f"Successfully downloaded and decompressed the file at {path}!")
+        print(f"Successfully downloaded and decompressed the file at {path.parent.absolute()}!")
     else:
-        print(f"Failed to download and decompress the file at {path}!")
+        print(f"Failed to download and decompress the file at {path.parent.absolute()}!")
     
     return success_flag
 

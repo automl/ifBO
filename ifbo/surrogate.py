@@ -4,28 +4,75 @@ from ifbo import Curve, PredictionResult
 from ifbo.utils import tokenize
 from pathlib import Path
 from typing import List
-from .download import download_and_decompress, VERSION_MAP, FILENAME, WEIGHTS_FINAL_NAME
+import warnings
+
+from .download import download_and_decompress, FILENAME, FILE_URL, VERSION_MAP, WEIGHTS_FINAL_NAME
+
+
+def _resolve_model_path(target_path: Path, version: str) -> Path:
+    """Resolve the model path.
+    
+    Args:
+        target_path (Path): Path to the trained model.
+        version (str): Version of the model.
+    
+    Returns:
+        path: Path to the trained model.
+    """
+    # Resolve target path
+    if target_path is None:
+        target_path = Path.cwd().absolute() / ".model"
+        warnings.warn(
+            "No target path provided. "\
+            f"Saving the model in the current working directory: {target_path}"
+        )
+    else:
+        if target_path.name == ".model" and target_path.is_dir():
+            target_path = target_path.absolute()
+        elif (target_path / ".model").is_dir() or \
+            (target_path.is_dir() and not (target_path / ".model").is_dir()):
+            # if target_path is a directory, and if `.model` subdirectory exists or not
+            target_path = (target_path / ".model").absolute()
+        else:
+            raise ValueError("Invalid target path. Please provide a valid directory path.")
+    target_path.mkdir(parents=True, exist_ok=True)
+
+    return target_path
 
 
 class FTPFN(torch.nn.Module):
-    def __init__(self, version: str = "0.0.1"):
-        super(FTPFN, self).__init__()
-        trained_models_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "trained_models")
-        )
+    """FTPFN surrogate model.
+    """
 
-        if version not in VERSION_MAP:
+    def __init__(self, target_path: Path = None, version: str = "0.0.1"):
+        """Initialize the FTPFN surrogate model.
+        
+        Args:
+            target_path (Path, optional): Path to the trained model. Defaults to None.
+                If None, creates a `.model/` directory in the current working directory.
+            version (str, optional): Version of the model. Defaults to "0.0.1".
+        """
+        super(FTPFN, self).__init__()
+
+        self.version = version
+        self.target_path = _resolve_model_path(target_path, self.version)
+
+        if self.version not in VERSION_MAP:
             raise ValueError(f"Version {version} is not available")
 
-        dest_path = Path(trained_models_path) / FILENAME(version)
-
-        if not dest_path.exists():
-            download_and_decompress(
-                url=VERSION_MAP.get(version).get("url"), path=dest_path, version=version
+        _target_file_zip = self.target_path / FILENAME(self.version)
+        if not download_and_decompress(
+            url=FILE_URL(self.version),
+            path=_target_file_zip,
+            version=version
+        ):
+            raise ValueError(
+                f"Failed to download and decompress the file at {self.target_path}!"
             )
 
+        # Loading and initializing the model with the pre-trained weights
         self.model = torch.load(
-            os.path.join(trained_models_path, WEIGHTS_FINAL_NAME(version)),
+            os.path.join(self.target_path, WEIGHTS_FINAL_NAME(version)),
             map_location="cpu",
         )
         self.model.eval()
@@ -34,6 +81,11 @@ class FTPFN(torch.nn.Module):
     def predict(
         self, context: List[Curve], query: List[Curve]
     ) -> List[PredictionResult]:
+        """Obtain the logits for the given context and query curves.
+
+        Function to perform Bayesian inference using FT-PFN that uses the logits obtained to 
+        compute various measures like likelihood, UCB, EI, PI, and quantile.
+        """
         x_train, y_train, x_test = tokenize(context, query)
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
         results = torch.split(logits, [len(curve.t) for curve in query], dim=0)
@@ -45,7 +97,7 @@ class FTPFN(torch.nn.Module):
             for curve, logit in zip(query, results)
         ]
 
-    def check_input(self, x_train, y_train, x_test):
+    def _check_input(self, x_train, y_train, x_test):
         if y_train.min() < 0 or y_train.max() > 1:
             raise Exception("y values should be in the range [0,1]")
         if (
@@ -70,8 +122,10 @@ class FTPFN(torch.nn.Module):
         ):
             raise Exception("hyperparameter values should be in the range [0,1]")
 
-    def forward(self, x_train, y_train, x_test):
-        self.check_input(x_train, y_train, x_test)
+    def forward(self, x_train: torch.Tensor, y_train: torch.Tensor, x_test: torch.Tensor):
+        """Forward pass through the model.
+        """
+        self._check_input(x_train, y_train, x_test)
         if x_train.shape[0] == 0:
             x_test[:, 0] = 0
         elif x_train[:, 0].min() == 0:

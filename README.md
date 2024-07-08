@@ -24,9 +24,14 @@ pip install -e .
 
 # Surrogate usage API
 
+```python
+# To initialize the surrogate and load pretrained weights
+from ifbo.surrogate import FTPFN
+
+model = FTPFN()
 ```
-TBA
-```
+
+*NOTE*: This creates a `.model/` directory in the current working directory for the surrogate model. To have control over this specify a `target_path: Path` when initializing.
 
 # To cite:
 
