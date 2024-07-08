@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-from .utils import print_once
-
 
 class BarDistribution(nn.Module):
     def __init__(
@@ -45,7 +43,7 @@ class BarDistribution(nn.Module):
         if ignore_loss_mask.any():
             if not self.ignore_nan_targets:
                 raise ValueError(f"Found NaN in target {y}")
-            print_once("A loss was ignored because there was nan target.")
+            print("A loss was ignored because there was nan target.")
         y[ignore_loss_mask] = self.borders[
             0
         ]  # this is just a default value, it will be ignored anyway

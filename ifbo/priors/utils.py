@@ -8,12 +8,13 @@ from functools import partial
 import torch
 # import submitit
 
-from ..utils import set_locals_in_self, normalize_data
+from ifbo.utils import set_locals_in_self, normalize_data
 from .prior import PriorDataLoader, Batch
 from torch import nn
 import numpy as np
 import math
 import os
+import cloudpickle
 
 
 def get_uniform_sampler(min_eval_pos, seq_len):
@@ -228,7 +229,6 @@ class DistributedPriorDataLoader(PriorDataLoader):
         # lazy loading or reloading in case this object is used by multiple processes (should be avoided)
         if self.loaded_chunk is None or self.rank != get_rank():
             self.rank = get_rank()
-            print(f"Lazy (re)loading first chunk for rank {self.rank}", force=True)
             offset = self.rank * self.n_chunks // self.n_gpus
             self._load_chunk(offset)
 
@@ -237,18 +237,14 @@ class DistributedPriorDataLoader(PriorDataLoader):
         self.data_sync()
         
         if self.subsample == 1:
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter}", file=sys.stderr, force=True)
             _, batch_data = self.loaded_chunk[self.batch_counter]
             batch_data.x = batch_data.x.to(device)
             batch_data.y = batch_data.y.to(device)
             batch_data.target_y = batch_data.target_y.to(device)
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr, force=True)
             self.batch_counter += 1
             if self.batch_counter >= len(self.loaded_chunk):
-                print(f"load {(self.loaded_chunk_id+1) % self.n_chunks}", file=sys.stderr, force=True)
                 self._load_chunk((self.loaded_chunk_id+1) % self.n_chunks)
         else:
-            print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} ({self.subsample_counter+1}/{self.subsample})", file=sys.stderr, force=True)
             _, full_batch_data = self.loaded_chunk[self.batch_counter]
             seq_len, batch_size = full_batch_data.y.shape
             subsample_size = batch_size // self.subsample
@@ -258,18 +254,15 @@ class DistributedPriorDataLoader(PriorDataLoader):
                 batch_data = Batch(full_batch_data.x[:,l:h,:].to(device),
                                    full_batch_data.y[:,l:h].to(device),
                                    full_batch_data.target_y[:,l:h].to(device))
-                print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr, force=True)
                 self.subsample_counter += 1
             else:
                 l = subsample_size*self.subsample_counter
                 batch_data = Batch(full_batch_data.x[:,l:,:].to(device),
                                    full_batch_data.y[:,l:].to(device),
                                    full_batch_data.target_y[:,l:].to(device))
-                print(f"get_batch {self.loaded_chunk_id} - {self.batch_counter} - {batch_data.x.shape} - {batch_data.y.shape} - {batch_data.target_y.shape}", file=sys.stderr, force=True)
                 self.subsample_counter = 0
                 self.batch_counter += 1
                 if self.batch_counter >= len(self.loaded_chunk):
-                    print(f"load {(self.loaded_chunk_id+1) % self.n_chunks}", file=sys.stderr, force=True)
                     self._load_chunk((self.loaded_chunk_id+1) % self.n_chunks)           
             
         return batch_data
