@@ -7,9 +7,9 @@ from typing import List
 from .download import download_and_decompress, VERSION_MAP, FILENAME, WEIGHTS_FINAL_NAME
 
 
-class Surrogate(torch.nn.Module):
+class FTPFN(torch.nn.Module):
     def __init__(self, version: str = "0.0.1"):
-        super(Surrogate, self).__init__()
+        super(FTPFN, self).__init__()
         trained_models_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "trained_models")
         )
@@ -39,8 +39,6 @@ class Surrogate(torch.nn.Module):
         results = torch.split(logits, [len(curve.t) for curve in query], dim=0)
         return [
             PredictionResult(
-                hyperparameters=curve.hyperparameters,
-                t=curve.t,
                 logits=logit,
                 criterion=self.model.criterion,
             )
@@ -51,10 +49,10 @@ class Surrogate(torch.nn.Module):
         if y_train.min() < 0 or y_train.max() > 1:
             raise Exception("y values should be in the range [0,1]")
         if (
-            x_train[:, 1] < 0
-            or x_train[:, 1] > 1
-            or x_test[:, 1] < 0
-            or x_test[:, 1] > 1
+            x_train[:, 1].min() < 0
+            or x_train[:, 1].max() > 1
+            or x_test[:, 1].min() < 0
+            or x_test[:, 1].max() > 1
         ):
             raise Exception("step values should be in the range [0,1]")
         if (
