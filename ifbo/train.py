@@ -10,15 +10,22 @@ import torch
 from torch import nn
 from torch.cuda.amp import autocast, GradScaler
 
-from . import utils
-from .priors import prior
-from . import priors
-from .transformer import TransformerModel
-from .bar_distribution import BarDistribution, FullSupportBarDistribution, get_bucket_limits, get_custom_bar_dist
-from .utils import get_cosine_schedule_with_warmup, get_openai_lr, StoreDictKeyPair, get_weighted_single_eval_pos_sampler, get_uniform_single_eval_pos_sampler
-from . import encoders
-from . import positional_encodings
-from .utils import init_dist
+from ifbo import utils
+from ifbo.priors import prior
+from ifbo import priors
+from ifbo.transformer import TransformerModel
+from ifbo.bar_distribution import (
+    BarDistribution, FullSupportBarDistribution, get_bucket_limits, get_custom_bar_dist
+)
+from ifbo.utils import (
+    get_cosine_schedule_with_warmup,
+    get_openai_lr,
+    get_weighted_single_eval_pos_sampler,
+    get_uniform_single_eval_pos_sampler,
+    init_dist,
+)
+from ifbo import encoders
+from ifbo import positional_encodings
 
 
 class Losses():

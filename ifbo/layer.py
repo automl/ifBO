@@ -2,8 +2,9 @@ from functools import partial
 
 import torch
 from torch import nn
-from torch.nn.modules.transformer import _get_activation_fn, Module, Tensor, Optional, MultiheadAttention, Linear, Dropout, LayerNorm
-
+from torch.nn.modules.transformer import (
+    _get_activation_fn, Module, Tensor, Optional, MultiheadAttention, Linear, Dropout, LayerNorm
+)
 from torch.utils.checkpoint import checkpoint
 
 

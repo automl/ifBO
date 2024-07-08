@@ -4,6 +4,7 @@ import torch
 import math
 import numpy as np
 from scipy.stats import norm, beta, gamma, expon
+
 from ifbo.encoders import Normalize
 from ifbo.priors.utils import Batch
 from ifbo.utils import default_device

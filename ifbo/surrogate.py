@@ -1,12 +1,14 @@
+from dataclasses import dataclass
 import os
 import torch
-from ifbo import Curve, PredictionResult
-from ifbo.utils import tokenize
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import warnings
 
-from .download import download_and_decompress, FILENAME, FILE_URL, VERSION_MAP, WEIGHTS_FINAL_NAME
+from ifbo.utils import tokenize, Curve, PredictionResult
+from ifbo.download import (
+    download_and_decompress, FILENAME, FILE_URL, VERSION_MAP, WEIGHTS_FINAL_NAME
+)
 
 
 def _resolve_model_path(target_path: Path, version: str) -> Path:

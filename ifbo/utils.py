@@ -1,17 +1,53 @@
-import os
-import math
 import argparse
-import random
+from dataclasses import dataclass
 import datetime
 import itertools
+import math
+import numpy as np
+import os
+import random
 
 import torch
 from torch import nn
-from . import Curve
 from torch.optim.lr_scheduler import LambdaLR
-import numpy as np
-from ifbo.priors.prior import Batch
+
 from typing import Tuple, List, Dict, Set, Optional
+
+from ifbo.priors.prior import Batch
+from ifbo.bar_distribution import BarDistribution
+
+
+@dataclass
+class Curve:
+    hyperparameters: torch.Tensor
+    t: torch.Tensor
+    y: Optional[torch.Tensor] = None
+
+
+@dataclass(unsafe_hash=True)
+class PredictionResult:
+    logits: torch.Tensor
+    criterion: BarDistribution
+
+    @torch.no_grad()
+    def likelihood(self, y_test):
+        return -self.criterion(self.logits, y_test).squeeze(1)
+
+    @torch.no_grad()
+    def ucb(self):
+        return self.criterion.ucb(self.logits, best_f=None).squeeze(1)
+
+    @torch.no_grad()
+    def ei(self, y_best):
+        return self.criterion.ei(self.logits, f_best=y_best).squeeze(1)
+
+    @torch.no_grad()
+    def pi(self, y_best):
+        return self.criterion.pi(self.logits, f_best=y_best).squeeze(1)
+    
+    @torch.no_grad()
+    def quantile(self, q):
+        return self.criterion.icdf(self.logits, q).squeeze(1)
 
 
 # copied from huggingface

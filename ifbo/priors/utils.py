@@ -6,15 +6,14 @@ import random
 from functools import partial
 
 import torch
-# import submitit
-
-from ifbo.utils import set_locals_in_self, normalize_data
-from .prior import PriorDataLoader, Batch
 from torch import nn
 import numpy as np
 import math
 import os
 import cloudpickle
+
+from ifbo.priors.prior import PriorDataLoader, Batch
+from ifbo.utils import set_locals_in_self, normalize_data
 
 
 def get_uniform_sampler(min_eval_pos, seq_len):

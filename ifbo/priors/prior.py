@@ -4,6 +4,7 @@ from dataclasses import dataclass, fields
 import torch
 from torch.utils.data import DataLoader
 
+
 @dataclass
 class Batch:
     """

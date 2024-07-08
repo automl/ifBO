@@ -2,7 +2,8 @@ import math
 
 import torch
 import torch.nn as nn
-from .utils import normalize_data
+
+from ifbo.utils import normalize_data
 
 
 class StyleEncoder(nn.Module):
