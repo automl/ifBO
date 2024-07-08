@@ -1,10 +1,15 @@
 __pycache__/
+*/__pycache__/
+*/*/__pycache__/
 
 *data*/
 *build*/
 *dist*/
 *output*/
 *result*/
+
+.DS_Store
+*/.DS_Store
 
 *.ipynb
 *.json
