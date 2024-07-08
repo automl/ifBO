@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="ifBO",
-    version="0.2.0",
+    version="0.2.1",
     description="In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
