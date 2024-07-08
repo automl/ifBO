@@ -1,8 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="ifBO",
-    version="0.2.1",
+    version="0.3.0",
     description="In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization",
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -14,9 +14,11 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
+        "cloudpickle>=3.0.0",
         "torch>=1.9.0",
         "numpy>=1.21.2,<2",
         "scipy>=1.13.1",
         "requests>=2.23.0",
     ],
+    packages=find_packages(),
 )
