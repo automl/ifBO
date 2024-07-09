@@ -46,7 +46,7 @@ class FTPFN(torch.nn.Module):
     """FTPFN surrogate model.
     """
 
-    def __init__(self, target_path: Path = None, version: str = "0.0.1"):
+    def __init__(self, target_path: Path = None, version: str = "0.0.1", device: Optional[torch.device] = None):
         """Initialize the FTPFN surrogate model.
         
         Args:
@@ -58,6 +58,7 @@ class FTPFN(torch.nn.Module):
 
         self.version = version
         self.target_path = _resolve_model_path(target_path, self.version)
+        self.device = device
 
         if self.version not in VERSION_MAP:
             raise ValueError(f"Version {version} is not available")
@@ -75,7 +76,7 @@ class FTPFN(torch.nn.Module):
         # Loading and initializing the model with the pre-trained weights
         self.model = torch.load(
             os.path.join(self.target_path, WEIGHTS_FINAL_NAME(version)),
-            map_location="cpu",
+            map_location=self.device if self.device is not None else torch.device("cpu"),
         )
         self.model.eval()
 
@@ -88,7 +89,7 @@ class FTPFN(torch.nn.Module):
         Function to perform Bayesian inference using FT-PFN that uses the logits obtained to 
         compute various measures like likelihood, UCB, EI, PI, and quantile.
         """
-        x_train, y_train, x_test = tokenize(context, query)
+        x_train, y_train, x_test = tokenize(context, query, device=self.device)
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
         results = torch.split(logits, [len(curve.t) for curve in query], dim=0)
         return [

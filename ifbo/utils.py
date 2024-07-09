@@ -432,7 +432,7 @@ def print_once(*msgs: str):
 
 
 def tokenize(
-    context: List[Curve], query: List[Curve]
+    context: List[Curve], query: List[Curve], device: Optional[torch.device] = None
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     # takes as input a list of curves and query points (does not have y values)
     # returns the tokenized representation of
@@ -461,7 +461,7 @@ def tokenize(
         for i in range(num_points):
             context_tokens.append(
                 torch.cat(
-                    (torch.tensor([curve_id, curve.t[i].item()]), curve.hyperparameters)
+                    (torch.tensor([curve_id, curve.t[i].item()]), curve.hyperparameters.cpu())
                 )
             )
             context_y_values.append(curve.y[i])
@@ -472,19 +472,19 @@ def tokenize(
         for i in range(num_points):
             query_tokens.append(
                 torch.cat(
-                    (torch.tensor([curve_id, curve.t[i].item()]), curve.hyperparameters)
+                    (torch.tensor([curve_id, curve.t[i].item()]), curve.hyperparameters.cpu())
                 )
             )
 
     # Convert lists to tensors
-    context_tokens_tensor = torch.stack(context_tokens, dim=0)
-    context_y_values_tensor = torch.stack(context_y_values, dim=0)
-    query_tokens_tensor = torch.stack(query_tokens, dim=0)
+    context_tokens_tensor = torch.stack(context_tokens, dim=0).to(device)
+    context_y_values_tensor = torch.stack(context_y_values, dim=0).to(device)
+    query_tokens_tensor = torch.stack(query_tokens, dim=0).to(device)
 
     return context_tokens_tensor, context_y_values_tensor, query_tokens_tensor
 
 
-def detokenize(batch: Batch, context_size: int) -> Tuple[List[Curve], List[Curve]]:
+def detokenize(batch: Batch, context_size: int, device: Optional[torch.device] = None) -> Tuple[List[Curve], List[Curve]]:
     (
         context_tokens_tensor,
         context_y_values_tensor,
@@ -563,8 +563,8 @@ def detokenize(batch: Batch, context_size: int) -> Tuple[List[Curve], List[Curve
     # Convert the context curves dictionary to list of Curve objects
     context_list = []
     for curve_id, points in context_curves.items():
-        x_values = torch.tensor([p[0] for p in points])
-        y_values = torch.tensor([p[1] for p in points])
+        x_values = torch.tensor([p[0] for p in points]).to(device)
+        y_values = torch.tensor([p[1] for p in points]).to(device)
         configuration = get_curve_config(curve_id)
         context_list.append(
             Curve(t=x_values, y=y_values, hyperparameters=configuration)
@@ -573,9 +573,9 @@ def detokenize(batch: Batch, context_size: int) -> Tuple[List[Curve], List[Curve
     # Convert the query curves dictionary to list of Curve objects
     query_list = []
     for curve_id, points in query_curves.items():
-        x_values = torch.tensor([p[0] for p in points])
+        x_values = torch.tensor([p[0] for p in points]).to(device)
         if query_y_values_tensor is not None:
-            y_values = torch.tensor([p[1] for p in points])
+            y_values = torch.tensor([p[1] for p in points]).to(device)
         configuration = get_curve_config(curve_id)
         query_list.append(
             Curve(
