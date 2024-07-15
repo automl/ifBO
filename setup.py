@@ -12,7 +12,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.10,<3.12",
     install_requires=[
         "cloudpickle>=3.0.0",
         "torch>=1.9.0",
