@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools >= 61.1.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ifBO"
+description = "In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization"
+readme = {file = "README.md", content-type = 'text/markdown'}
+license = {file = "LICENSE"}
+authors = [
+    {name = "Herilalaina Rakotoarison, Steven Adriaensen, Neeratyoy Mallik, Samir Garibov, Edward Bergman"}
+]
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "cloudpickle>=3.0.0",
+    "torch>=1.9.0",
+    "numpy>=1.21.2,<2",
+    "scipy>=1.13.1",
+    "requests>=2.23.0",
+]
+dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+homepage = "https://github.com/automl/ifBO"
+repository = "https://github.com/automl/ifBO"
+bugtracker = "https://github.com/automl/ifBO/issues"
+
+[tool.setuptools.packages.find]
+include = ["ifbo*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "ifbo.version.__version__"}
