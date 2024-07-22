@@ -1,7 +1,8 @@
 import argparse
-from pathlib import Path
-import requests
 import os
+from pathlib import Path
+
+import requests
 
 
 VERSION_MAP = {
@@ -9,24 +10,30 @@ VERSION_MAP = {
         url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/ftpfnv0.0.1.tar.gz",
         name="ftpfnv0.0.1",
         final_name="bopfn_broken_unisep_1000curves_10params_2M",
-        extension="pt"
+        extension="pt",
     )
 }
 
+
 # Helper functions to generate the file names
-FILENAME = lambda version: f"{VERSION_MAP.get(version).get('name')}.tar.gz"
-FILE_URL = lambda version: f"{VERSION_MAP.get(version).get('url')}"
-
-WEIGHTS_FILE_NAME = lambda version: (
-    f"{VERSION_MAP.get(version).get('name')}.{VERSION_MAP.get(version).get('extension')}"
-)
-WEIGHTS_FINAL_NAME = lambda version: (
-    f"{VERSION_MAP.get(version).get('final_name')}.{VERSION_MAP.get(version).get('extension')}"
-)
+def FILENAME(version: str) -> str:
+    return f"{VERSION_MAP[version].get('name')}.tar.gz"
 
 
-def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
-    """ Helper function to download a file from a URL and decompress it and store by given name.
+def FILE_URL(version: str) -> str:
+    return f"{VERSION_MAP[version].get('url')}"
+
+
+def WEIGHTS_FILE_NAME(version: str) -> str:
+    return f"{VERSION_MAP[version].get('name')}.{VERSION_MAP[version].get('extension')}"
+
+
+def WEIGHTS_FINAL_NAME(version: str) -> str:
+    return f"{VERSION_MAP[version].get('final_name')}.{VERSION_MAP[version].get('extension')}"
+
+
+def download_and_decompress(url: str, path: Path, version: str = "0.0.1") -> bool:
+    """Helper function to download a file from a URL and decompress it and store by given name.
 
     Args:
         url (str): URL of the file to download
@@ -43,10 +50,10 @@ def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
     # Check if the request is successful
     if response.status_code == 200:
         # Save the .tar.gz file
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             f.write(response.content)
         # Decompress the .tar.gz file
-        if path.name.endswith('.tar.gz') and path.exists:
+        if path.name.endswith(".tar.gz") and path.exists():
             os.system(f"tar -xvf {path} -C {path.parent.absolute()} > /dev/null 2>&1")
         else:
             success_flag = False
@@ -58,26 +65,19 @@ def download_and_decompress(url: str, path: Path, version: str="0.0.1") -> bool:
         print(f"Successfully downloaded and decompressed the file at {path.parent.absolute()}!")
     else:
         print(f"Failed to download and decompress the file at {path.parent.absolute()}!")
-    
+
     return success_flag
 
 
 def parse_args() -> argparse.Namespace:
-    """ Helper function to parse the command line arguments.
-    """
+    """Helper function to parse the command line arguments."""
     args = argparse.ArgumentParser()
 
     args.add_argument(
-        "--version",
-        type=str,
-        default="0.0.1",
-        help="The version of the PFN model to download"
+        "--version", type=str, default="0.0.1", help="The version of the PFN model to download"
     )
     args.add_argument(
-        "--path",
-        type=str,
-        default=None,
-        help="The path to save the downloaded file"
+        "--path", type=str, default=None, help="The path to save the downloaded file"
     )
 
     parser = args.parse_args()
@@ -85,7 +85,6 @@ def parse_args() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
-
     args = parse_args()
 
     assert args.version in VERSION_MAP, "The version provided is not available"
@@ -100,9 +99,9 @@ if __name__ == "__main__":
 
     # Use the function
     if download_and_decompress(
-        url=VERSION_MAP.get(args.version).get("url"),
+        url=VERSION_MAP[args.version]["url"],
         path=args.path / FILENAME(args.version),
-        version=args.version
+        version=args.version,
     ):
         print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")
     else:

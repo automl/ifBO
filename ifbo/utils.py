@@ -1,27 +1,32 @@
+from __future__ import annotations
+
 import argparse
+from collections.abc import Callable
+from collections.abc import Generator
+from collections.abc import Sequence
 from dataclasses import dataclass
 import datetime
 import itertools
 import math
-import numpy as np
 import os
 import random
+from typing import Any
 
+import numpy as np
 import torch
 from torch import nn
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 
-from typing import Tuple, List, Dict, Set, Optional
-
-from ifbo.priors.prior import Batch
 from ifbo.bar_distribution import BarDistribution
+from ifbo.priors.prior import Batch
 
 
 @dataclass
 class Curve:
     hyperparameters: torch.Tensor
     t: torch.Tensor
-    y: Optional[torch.Tensor] = None
+    y: torch.Tensor | None = None
 
 
 @dataclass(unsafe_hash=True)
@@ -30,70 +35,72 @@ class PredictionResult:
     criterion: BarDistribution
 
     @torch.no_grad()
-    def likelihood(self, y_test):
+    def likelihood(self, y_test: torch.Tensor) -> torch.Tensor:
         return -self.criterion(self.logits, y_test).squeeze(1)
 
     @torch.no_grad()
-    def ucb(self):
+    def ucb(self) -> torch.Tensor:
         return self.criterion.ucb(self.logits, best_f=None).squeeze(1)
 
     @torch.no_grad()
-    def ei(self, y_best):
-        return self.criterion.ei(self.logits, f_best=y_best).squeeze(1)
+    def ei(self, y_best: torch.Tensor) -> torch.Tensor:
+        return self.criterion.ei(self.logits, best_f=y_best).squeeze(1)
 
     @torch.no_grad()
-    def pi(self, y_best):
-        return self.criterion.pi(self.logits, f_best=y_best).squeeze(1)
-    
+    def pi(self, y_best: torch.Tensor) -> torch.Tensor:
+        return self.criterion.pi(self.logits, best_f=y_best).squeeze(1)
+
     @torch.no_grad()
-    def quantile(self, q):
+    def quantile(self, q: float) -> torch.Tensor:
         return self.criterion.icdf(self.logits, q).squeeze(1)
 
 
 # copied from huggingface
 def get_cosine_schedule_with_warmup(
-    optimizer, num_warmup_steps, num_training_steps, num_cycles=0.5, last_epoch=-1
-):
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    num_cycles: float = 0.5,
+    last_epoch: int = -1,
+) -> LambdaLR:
     """Create a schedule with a learning rate that decreases following the
     values of the cosine function between 0 and `pi * cycles` after a warmup
     period during which it increases linearly between 0 and 1.
     """
 
-    def lr_lambda(current_step):
+    def lr_lambda(current_step: int) -> float:
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
         progress = float(current_step - num_warmup_steps) / float(
             max(1, num_training_steps - num_warmup_steps)
         )
-        return max(
-            0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
-        )
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
 # copied from huggingface
 def get_restarting_cosine_schedule_with_warmup(
-    optimizer,
-    num_warmup_steps,
-    num_training_steps,
-    steps_per_restart,
-    num_cycles=0.5,
-    last_epoch=-1,
-):
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    steps_per_restart: int,
+    num_cycles: float = 0.5,
+    last_epoch: int = -1,
+) -> LambdaLR:
     assert num_training_steps % steps_per_restart == 0
 
-    def inner_lr_lambda(current_step, num_warmup_steps, num_training_steps):
+    def inner_lr_lambda(
+        current_step: int, num_warmup_steps: int, num_training_steps: int
+    ) -> float:
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
         progress = float(current_step - num_warmup_steps) / float(
             max(1, num_training_steps - num_warmup_steps)
         )
-        return max(
-            0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
-        )
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress)))
 
-    def lr_lambda(current_step):
+    def lr_lambda(current_step: int) -> float:
         inner_step = current_step % steps_per_restart
         return inner_lr_lambda(
             inner_step,
@@ -106,8 +113,11 @@ def get_restarting_cosine_schedule_with_warmup(
 
 # copied from huggingface
 def get_linear_schedule_with_warmup(
-    optimizer, num_warmup_steps, num_training_steps, last_epoch=-1
-):
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    last_epoch: int = -1,
+) -> LambdaLR:
     """
     Create a schedule with a learning rate that decreases linearly from the initial lr set in the optimizer to 0, after
     a warmup period during which it increases linearly from 0 to the initial lr set in the optimizer.
@@ -126,7 +136,7 @@ def get_linear_schedule_with_warmup(
         :obj:`torch.optim.lr_scheduler.LambdaLR` with the appropriate schedule.
     """
 
-    def lr_lambda(current_step: int):
+    def lr_lambda(current_step: int) -> float:
         if current_step < num_warmup_steps:
             return float(current_step) / float(max(1, num_warmup_steps))
         return max(
@@ -138,12 +148,14 @@ def get_linear_schedule_with_warmup(
     return LambdaLR(optimizer, lr_lambda, last_epoch)
 
 
-def get_openai_lr(transformer_model):
+def get_openai_lr(transformer_model: nn.Module) -> float:
     num_params = sum(p.numel() for p in transformer_model.parameters())
     return 0.003239 - 0.0001395 * math.log(num_params)
 
 
-def get_weighted_single_eval_pos_sampler(max_len, min_len=0, p=1.0):
+def get_weighted_single_eval_pos_sampler(
+    max_len: int, min_len: int = 0, p: float = 1.0
+) -> Callable[[], int]:
     """
     This gives a sampler that can be used for `single_eval_pos` which yields good performance for all positions p,
     where p <= `max_len`. At most `max_len` - 1 examples are shown to the Transformer.
@@ -155,7 +167,7 @@ def get_weighted_single_eval_pos_sampler(max_len, min_len=0, p=1.0):
     )[0]
 
 
-def get_uniform_single_eval_pos_sampler(max_len, min_len=0):
+def get_uniform_single_eval_pos_sampler(max_len: int, min_len: int = 0) -> Callable[[], int]:
     """
     Just sample any evaluation position with the same weight
     :return: Sampler that can be fed to `train()` as `single_eval_pos_gen`.
@@ -164,19 +176,19 @@ def get_uniform_single_eval_pos_sampler(max_len, min_len=0):
 
 
 class SeqBN(nn.Module):
-    def __init__(self, d_model):
+    def __init__(self, d_model: int) -> None:
         super().__init__()
         self.bn = nn.BatchNorm1d(d_model)
         self.d_model = d_model
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         assert self.d_model == x.shape[-1]
         flat_x = x.view(-1, self.d_model)
         flat_x = self.bn(flat_x)
         return flat_x.view(*x.shape)
 
 
-def set_locals_in_self(locals):
+def set_locals_in_self(locals: dict[str, Any]) -> None:
     """
     Call this function like `set_locals_in_self(locals())` to set all local variables as object variables.
     Especially useful right at the beginning of `__init__`.
@@ -192,33 +204,40 @@ default_device = "cuda:0" if torch.cuda.is_available() else "cpu:0"
 
 
 # Copied from StackOverflow, but we do an eval on the values additionally
-class StoreDictKeyPair(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+class StoredictKeyPair(argparse.Action):
+    def __init__(
+        self, option_strings: list[str], dest: str, nargs: int | None = None, **kwargs: Any
+    ) -> None:
         self._nargs = nargs
-        super(StoreDictKeyPair, self).__init__(
-            option_strings, dest, nargs=nargs, **kwargs
-        )
+        super(StoredictKeyPair, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
         my_dict = {}
-        for kv in values:
-            k, v = kv.split("=")
-            try:
-                my_dict[k] = eval(v)
-            except NameError:
-                my_dict[k] = v
+        if values is not None:
+            for kv in values:
+                k, v = kv.split("=")
+                try:
+                    my_dict[k] = eval(v)
+                except NameError:
+                    my_dict[k] = v
         setattr(namespace, self.dest, my_dict)
         print("dict values: {}".format(my_dict))
 
 
-def get_nan_value(v, set_value_to_nan=1.0):
+def get_nan_value(v: float, set_value_to_nan: float = 1.0) -> float:
     if random.random() < set_value_to_nan:
         return v
     else:
         return random.choice([-999, 0, 1, 999])
 
 
-def to_ranking(data):
+def to_ranking(data: torch.Tensor) -> torch.Tensor:
     x = data >= data.unsqueeze(-3)
     x = x.sum(0)
     return x
@@ -228,7 +247,7 @@ def to_ranking(data):
 #   1. Cmparing to unique elements: When all values are different we still get quadratic blowup
 #   2. Argsort(Argsort()) returns ranking, but with duplicate values there is an ordering which is problematic
 #   3. Argsort(Argsort(Unique))->Scatter seems a bit complicated, doesn't have quadratic blowup, but how fast?
-def to_ranking_low_mem(data):
+def to_ranking_low_mem(data: torch.Tensor) -> torch.Tensor:
     x = torch.zeros_like(data)
     for col in range(data.shape[-1]):
         x_ = data[:, :, col] >= data[:, :, col].unsqueeze(-2)
@@ -237,43 +256,37 @@ def to_ranking_low_mem(data):
     return x
 
 
-def nan_handling_missing_for_unknown_reason_value(nan_prob=1.0):
+def nan_handling_missing_for_unknown_reason_value(nan_prob: float = 1.0) -> float:
     return get_nan_value(float("nan"), nan_prob)
 
 
-def nan_handling_missing_for_no_reason_value(nan_prob=1.0):
+def nan_handling_missing_for_no_reason_value(nan_prob: float = 1.0) -> float:
     return get_nan_value(float("-inf"), nan_prob)
 
 
-def nan_handling_missing_for_a_reason_value(nan_prob=1.0):
+def nan_handling_missing_for_a_reason_value(nan_prob: float = 1.0) -> float:
     return get_nan_value(float("inf"), nan_prob)
 
 
-def torch_nanmean(x, axis=0, return_nanshare=False):
-    num = torch.where(torch.isnan(x), torch.full_like(x, 0), torch.full_like(x, 1)).sum(
-        axis=axis
-    )
+def torch_nanmean(x: torch.Tensor, axis: int = 0, return_nanshare: bool = False) -> torch.Tensor:
+    num = torch.where(torch.isnan(x), torch.full_like(x, 0), torch.full_like(x, 1)).sum(axis=axis)
     value = torch.where(torch.isnan(x), torch.full_like(x, 0), x).sum(axis=axis)
     if return_nanshare:
         return value / num, 1.0 - num / x.shape[axis]
     return value / num
 
 
-def torch_nanstd(x, axis=0):
-    num = torch.where(torch.isnan(x), torch.full_like(x, 0), torch.full_like(x, 1)).sum(
-        axis=axis
-    )
+def torch_nanstd(x: torch.Tensor, axis: int = 0) -> torch.Tensor:
+    num = torch.where(torch.isnan(x), torch.full_like(x, 0), torch.full_like(x, 1)).sum(axis=axis)
     value = torch.where(torch.isnan(x), torch.full_like(x, 0), x).sum(axis=axis)
     mean = value / num
-    mean_broadcast = torch.repeat_interleave(
-        mean.unsqueeze(axis), x.shape[axis], dim=axis
-    )
-    return torch.sqrt(
-        torch.nansum(torch.square(mean_broadcast - x), axis=axis) / (num - 1)
-    )
+    mean_broadcast = torch.repeat_interleave(mean.unsqueeze(axis), x.shape[axis], dim=axis)
+    return torch.sqrt(torch.nansum(torch.square(mean_broadcast - x), axis=axis) / (num - 1))
 
 
-def normalize_data(data, normalize_positions=-1, return_scaling=False):
+def normalize_data(
+    data: torch.Tensor, normalize_positions: int = -1, return_scaling: bool = False
+) -> torch.Tensor | tuple[torch.Tensor, tuple[float, float]]:
     if normalize_positions > 0:
         mean = torch_nanmean(data[:normalize_positions], axis=0)
         std = torch_nanstd(data[:normalize_positions], axis=0) + 0.000001
@@ -288,7 +301,9 @@ def normalize_data(data, normalize_positions=-1, return_scaling=False):
     return data
 
 
-def remove_outliers(X, n_sigma=4, normalize_positions=-1):
+def remove_outliers(
+    X: torch.Tensor, n_sigma: int = 4, normalize_positions: int = -1
+) -> torch.Tensor:
     # Expects T, B, H
     assert len(X.shape) == 3, "X must be T,B,H"
     # for b in range(X.shape[1]):
@@ -313,20 +328,16 @@ def remove_outliers(X, n_sigma=4, normalize_positions=-1):
     return X
 
 
-def bool_mask_to_att_mask(mask):
-    return (
-        mask.float()
-        .masked_fill(mask == 0, float("-inf"))
-        .masked_fill(mask == 1, float(0.0))
-    )
+def bool_mask_to_att_mask(mask: torch.Tensor) -> torch.Tensor:
+    return mask.float().masked_fill(mask == 0, float("-inf")).masked_fill(mask == 1, float(0.0))
 
 
-def print_on_master_only(is_master):
+def print_on_master_only(is_master: bool) -> None:
     import builtins as __builtin__
 
     builtin_print = __builtin__.print
 
-    def print(*args, **kwargs):
+    def print(*args: Any, **kwargs: Any) -> None:
         force = kwargs.pop("force", False)
         if is_master or force:
             builtin_print(*args, **kwargs)
@@ -334,7 +345,7 @@ def print_on_master_only(is_master):
     __builtin__.print = print
 
 
-def init_dist(device):
+def init_dist(device: torch.device) -> tuple[bool, int, torch.device]:
     print("init dist")
     if "LOCAL_RANK" in os.environ:
         # launched with torch.distributed.launch
@@ -389,32 +400,30 @@ def init_dist(device):
 
 # NOP decorator for python with statements (x = NOP(); with x:)
 class NOP:
-    def __enter__(self):
+    def __enter__(self) -> None:
         pass
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type: Any, value: Any, traceback: Any) -> None:
         pass
 
 
-def check_compatibility(dl):
+def check_compatibility(dl: torch.utils.data.DataLoader) -> None:
     if hasattr(dl, "num_outputs"):
-        print(
-            "`num_outputs` for the DataLoader is deprecated. It is assumed to be 1 from now on."
-        )
+        print("`num_outputs` for the DataLoader is deprecated. It is assumed to be 1 from now on.")
         assert dl.num_outputs != 1, (
             "We assume num_outputs to be 1. Instead of the num_ouputs change your loss."
             "We specify the number of classes in the CE loss."
         )
 
 
-def product_dict(dic):
+def product_dict(dic: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
     keys = dic.keys()
     vals = dic.values()
     for instance in itertools.product(*vals):
         yield dict(zip(keys, instance))
 
 
-def to_tensor(x, device=None):
+def to_tensor(x: torch.Tensor, device: torch.device | None = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x.to(device)
     else:
@@ -424,7 +433,7 @@ def to_tensor(x, device=None):
 printed_already = set()
 
 
-def print_once(*msgs: str):
+def print_once(*msgs: str) -> None:
     msg = " ".join([repr(m) for m in msgs])
     if msg not in printed_already:
         print(msg)
@@ -432,15 +441,15 @@ def print_once(*msgs: str):
 
 
 def tokenize(
-    context: List[Curve], query: List[Curve], device: Optional[torch.device] = None
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    context: list[Curve], query: list[Curve], device: torch.device | None = None
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     # takes as input a list of curves and query points (does not have y values)
     # returns the tokenized representation of
     #   - context curves: ([id curve, t value, hyperparameters]) and the corresponding y values.
     #   - query points: ([id curve, t value, hyperparameters])
     # The id curve is a unique identifier for each curve in the context.
 
-    config_to_id: Dict[torch.Tensor, int] = {}
+    config_to_id: dict[torch.Tensor, int] = {}
     context_tokens = []
     context_y_values = []
     query_tokens = []
@@ -464,6 +473,7 @@ def tokenize(
                     (torch.tensor([curve_id, curve.t[i].item()]), curve.hyperparameters.cpu())
                 )
             )
+            assert curve.y is not None
             context_y_values.append(curve.y[i])
 
     for curve in query:
@@ -484,7 +494,9 @@ def tokenize(
     return context_tokens_tensor, context_y_values_tensor, query_tokens_tensor
 
 
-def detokenize(batch: Batch, context_size: int, device: Optional[torch.device] = None) -> Tuple[List[Curve], List[Curve]]:
+def detokenize(
+    batch: Batch, context_size: int, device: torch.device | None = None
+) -> tuple[list[Curve], list[Curve]]:
     (
         context_tokens_tensor,
         context_y_values_tensor,
@@ -496,11 +508,11 @@ def detokenize(batch: Batch, context_size: int, device: Optional[torch.device] =
         batch.x.squeeze(1)[context_size:, ...],
         batch.y.squeeze(1)[context_size:, ...],
     )
-    id_to_config: Dict[int, torch.Tensor] = {}
-    context_curves: Dict[int, List[Tuple[float, float]]] = {}
-    query_curves: Dict[int, List[float]] = {}
-    used_ids: Set[int] = set()
-    all_possible_ids: Set[int] = set(range(1, 1001))
+    id_to_config: dict[int, torch.Tensor] = {}
+    context_curves: dict[int, list[tuple[float, float]]] = {}
+    query_curves: dict[int, list[tuple[float, float]]] = {}
+    used_ids: set[int] = set()
+    all_possible_ids: set[int] = set(range(1, 1001))
 
     def get_curve_config(curve_id: int) -> torch.Tensor:
         if curve_id in id_to_config:
@@ -558,7 +570,7 @@ def detokenize(batch: Batch, context_size: int, device: Optional[torch.device] =
         if curve_id not in query_curves:
             query_curves[curve_id] = []
 
-        query_curves[curve_id].append([x_value, y_value.item()])
+        query_curves[curve_id].append((x_value, y_value.item()))
 
     # Convert the context curves dictionary to list of Curve objects
     context_list = []
@@ -566,9 +578,7 @@ def detokenize(batch: Batch, context_size: int, device: Optional[torch.device] =
         x_values = torch.tensor([p[0] for p in points]).to(device)
         y_values = torch.tensor([p[1] for p in points]).to(device)
         configuration = get_curve_config(curve_id)
-        context_list.append(
-            Curve(t=x_values, y=y_values, hyperparameters=configuration)
-        )
+        context_list.append(Curve(t=x_values, y=y_values, hyperparameters=configuration))
 
     # Convert the query curves dictionary to list of Curve objects
     query_list = []
