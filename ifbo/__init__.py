@@ -11,6 +11,7 @@ from .priors.utils import (
     get_batch_sequence as get_batch_sequence, get_batch_to_dataloader as get_batch_to_dataloader
 )
 from .priors.prior import Batch
+from .version import __version__
 
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "Batch",
     "get_batch_sequence",
     "get_batch_to_dataloader",
+    "__version__",
 ]
