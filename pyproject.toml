@@ -4,7 +4,12 @@ description = "In-context Freeze-Thaw Bayesian Optimization for Hyperparameter O
 readme = {file = "README.md", content-type = 'text/markdown'}
 license = {file = "LICENSE"}
 authors = [
-    {name = "Herilalaina Rakotoarison, Steven Adriaensen, Neeratyoy Mallik, Samir Garibov, Edward Bergman"}
+    {name = "Herilalaina Rakotoarison", email = "rakotoah@cs.uni-freiburg.de"},
+    {name = "Steven Adriaensen", email= "adriaens@cs.uni-freiburg.de"},
+    {name = "Neeratyoy Mallik", email = "mallik@cs.uni-freiburg.de"},
+    {name = "Samir Garibov"},
+    {name = "Edward Bergman"},
+    {name = "Frank Hutter"},
 ]
 requires-python = ">=3.10,<3.12"
 dependencies = [
@@ -16,9 +21,16 @@ dependencies = [
 ]
 dynamic = ["version"]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  'Intended Audience :: Science/Research',
+  'License :: OSI Approved :: MIT License',
+  'Programming Language :: Python',
+  'Topic :: Software Development',
+  'Topic :: Scientific/Engineering',
+  'Operating System :: Unix',
+  'Operating System :: MacOS',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
 ]
 
 [project.urls]
@@ -29,7 +41,7 @@ bugtracker = "https://github.com/automl/ifBO/issues"
 [tool.setuptools.packages.find]
 include = ["ifbo*"]
 
-[tool.setuptools.package_data]
+[tool.setuptools.package-data]
 ifbo = ["ifbo/priors/output_sorted.npy"]
 
 [tool.setuptools.dynamic]
