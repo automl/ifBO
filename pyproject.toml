@@ -1,7 +1,3 @@
-[build-system]
-requires = ["setuptools >= 61.1.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "ifBO"
 description = "In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization"
@@ -32,6 +28,9 @@ bugtracker = "https://github.com/automl/ifBO/issues"
 
 [tool.setuptools.packages.find]
 include = ["ifbo*"]
+
+[tool.setuptools.package_data]
+ifbo = ["ifbo/priors/output_sorted.npy"]
 
 [tool.setuptools.dynamic]
 version = {attr = "ifbo.version.__version__"}
