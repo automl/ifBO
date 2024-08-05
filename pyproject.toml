@@ -42,7 +42,7 @@ bugtracker = "https://github.com/automl/ifBO/issues"
 include = ["ifbo*"]
 
 [tool.setuptools.package-data]
-ifbo = ["ifbo/priors/output_sorted.npy"]
+ifbo = ["priors/output_sorted.npy"]
 
 [tool.setuptools.dynamic]
 version = {attr = "ifbo.version.__version__"}
