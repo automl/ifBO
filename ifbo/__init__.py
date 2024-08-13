@@ -7,6 +7,7 @@ from .priors.utils import get_batch_to_dataloader as get_batch_to_dataloader
 from .surrogate import FTPFN
 from .utils import Curve
 from .utils import PredictionResult
+from .version import __version__
 
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "get_batch_sequence",
     "get_batch_to_dataloader",
     "ftpfn_prior",
+    "__version__",
 ]
