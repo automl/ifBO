@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     configs = [
         {
-            "benchmark": args.benchmark,
+            "benchmark_name": args.benchmark,
             "task_id": tid,
             "ntasks_per_dataset": args.ntasks_per_dataset,
             "single_eval_pos": nsamples,

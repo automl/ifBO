@@ -14,7 +14,7 @@ You can generate Table 1 from the paper by running the notebook `generate_table_
 To generate tasks from a benchmark (``lcbench_tabular``, ``pd1_tabular`` or ``taskset_tabular``), use the command below:
 
 ```bash
-python generate_tasks.py --ntasks_per_dataset 100 --benchmark <BENCHMARK> --seed 42 --data_path ../../../data
+python generate_tasks.py --ntasks_per_dataset 100 --benchmark <BENCHMARK> --seed 42 --data_path ../../data
 ```
 
 ## Evaluate (LogLikelihood, MSE, Runtime)
@@ -22,7 +22,7 @@ python generate_tasks.py --ntasks_per_dataset 100 --benchmark <BENCHMARK> --seed
 To compute the LogLikelihood, MSE, and runtime of predictions for a model (``bopfn_broken_no_hps_1000curves_10params_2M`` for no HPs FT-PFN or ``bopfn_broken_unisep_1000curves_10params_2M``), run the following commands:
 
 ```bash
-python evaluate_pfn.py --model <MODEL> --benchmark lcbench_tabular --data_path ../../../data/  
+python evaluate_pfn.py --model <MODEL> --benchmark lcbench_tabular --data_path ../../data/  
 ```
 
 **Note:** 
