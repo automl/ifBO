@@ -13,7 +13,13 @@ VERSION_MAP = {
         name="surrogate",
         final_name="bopfn_broken_unisep_1000curves_10params_2M",
         extension="pt"
-    )
+    ),
+   "0.0.1.nohps": dict(
+        url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/surrogateNoHPS.tar.gz",
+        name="surrogateNoHPS",
+        final_name="bopfn_broken_no_hps_1000curves_10params_2M",
+        extension="pt"
+    ), 
 }
 
 # Helper functions to generate the file names

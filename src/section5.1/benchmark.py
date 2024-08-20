@@ -19,6 +19,7 @@ def get_benchmark(name, task_id, data_path):
             value_metric="val_balanced_accuracy",
             value_metric_test="test_balanced_accuracy",
         )
+        output_name = task_id
     elif name == "pd1_tabular":
         output_name = f"{task_id['model']}_{task_id['dataset']}_{task_id['batch_size']}"
         if "coarseness" in task_id:
@@ -47,4 +48,6 @@ def get_benchmark(name, task_id, data_path):
         benchmark = process_taskset_mfpbench_with_step_0_prior(
             benchmark=benchmark, drop_step_0=True
         )
+    else:
+        raise ValueError(f"Unknown benchmark: {name}")
     return benchmark, output_name

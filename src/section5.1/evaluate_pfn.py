@@ -9,12 +9,13 @@ from benchmark import get_benchmark
 from taskids import lcbench_ids, pd1_ids, taskset_ids
 
 
-def evaluate(benchmark_name, task_id, sep, cases_per_dataset, model_name, data_path):
+def evaluate(benchmark_name, task_id, sep, model_name, data_path):
     benchmark, output_name = get_benchmark(benchmark_name, task_id, data_path)
+    cases_per_dataset = 100
 
     data = torch.load(
         os.path.join(
-            "tasks", benchmark, f"{output_name}_{cases_per_dataset}bs_{sep}sep.pt"
+            "tasks", benchmark_name, f"{output_name}_{cases_per_dataset}bs_{sep}sep.pt"
         )
     )
     data = torch.swapaxes(data, 0, 1).float()
@@ -44,6 +45,7 @@ def evaluate(benchmark_name, task_id, sep, cases_per_dataset, model_name, data_p
         mse = ((ypred.flatten() - test_y[mask_test, i]) ** 2).mean().item()
 
         results.append([ll, mse, end - start])
+        print("Dataset", output_name, "Task", i, "LL", ll, "MSE", mse, "Time", end - start)
 
     results = np.array(results)
     np.save(
@@ -66,7 +68,7 @@ if __name__ == "__main__":
         help="benchmark to evaluate on",
     )
     parser.add_argument(
-        "--data_path", type=str, default="../../../data/", help="Path to data"
+        "--data_path", type=str, default="../../data/", help="Path to data"
     )
     args = parser.parse_args()
     os.makedirs(os.path.join("results", args.benchmark), exist_ok=True)
@@ -82,7 +84,6 @@ if __name__ == "__main__":
             "benchmark_name": args.benchmark,
             "task_id": tid,
             "sep": sep,
-            "cases_per_dataset": args.cases_per_dataset,
             "model_name": args.model,
             "data_path": args.data_path,
         }

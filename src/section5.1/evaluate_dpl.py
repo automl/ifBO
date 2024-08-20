@@ -68,13 +68,14 @@ def prepare_test_data(data, learning_curves, uid):
     )
 
 
-def evaluate(benchmark_name, task_id, sep, cases_per_dataset, model_name, data_path):
+def evaluate(benchmark_name, task_id, sep, model_name, data_path):
     import sys
 
     sys.path.append(str(Path(__file__).parent.parent.absolute() / "DPL"))
     from surrogate_models.power_law_surrogate import PowerLawSurrogate
 
     benchmark, output_name = get_benchmark(benchmark_name, task_id, data_path)
+    cases_per_dataset = 100
 
     data = torch.load(
         os.path.join(
@@ -172,7 +173,7 @@ if __name__ == "__main__":
         help="benchmark to evaluate on",
     )
     parser.add_argument(
-        "--data_path", type=str, default="../../../data/", help="Path to data"
+        "--data_path", type=str, default="../../data/", help="Path to data"
     )
     args = parser.parse_args()
     os.makedirs(os.path.join("results", args.benchmark), exist_ok=True)
@@ -188,7 +189,6 @@ if __name__ == "__main__":
             "benchmark_name": args.benchmark,
             "task_id": tid,
             "sep": sep,
-            "cases_per_dataset": args.cases_per_dataset,
             "model_name": "dpl",
             "data_path": args.data_path,
         }
