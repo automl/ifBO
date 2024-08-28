@@ -1,20 +1,28 @@
-import os
-import warnings
-import torch
+from collections.abc import Callable
 import math
+import os
+from typing import Any
+import warnings
+
 import numpy as np
-from scipy.stats import norm, beta, gamma, expon
+from scipy.stats import beta
+from scipy.stats import expon
+from scipy.stats import gamma
+from scipy.stats import norm
+import torch
 
-from ifbo.encoders import Normalize
-from ifbo.priors.utils import Batch
-from ifbo.utils import default_device
 from ifbo import encoders
-from ifbo.utils import detokenize
+from ifbo.encoders import Normalize
+from ifbo.priors.prior import Batch
+from ifbo.utils import default_device
 
-OUTPUT_SORTED = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "output_sorted.npy"))
+
+OUTPUT_SORTED = np.load(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "output_sorted.npy")
+)
 
 
-def progress_noise(X, sigma, L):
+def progress_noise(X: np.ndarray, sigma: float, L: float) -> np.ndarray:
     EPS = 10**-9
     N = len(X)
 
@@ -29,7 +37,9 @@ def progress_noise(X, sigma, L):
     return C @ Z
 
 
-def add_noise_and_break(x, x_noise, Xsat, Rpsat):
+def add_noise_and_break(
+    x: np.ndarray, x_noise: None, Xsat: np.ndarray, Rpsat: np.ndarray
+) -> np.ndarray:
     x = np.where(
         x < Xsat, x, Rpsat * (x - Xsat) + Xsat
     )  # add a breaking point when saturation is reached
@@ -42,17 +52,17 @@ def add_noise_and_break(x, x_noise, Xsat, Rpsat):
 
 
 def comb(
-    x,
-    Y0=0.2,
-    Yinf=0.8,
-    sigma=0.01,
-    L=0.0001,
-    PREC=[100] * 4,
-    Xsat=[1.0] * 4,
-    alpha=[np.exp(1), np.exp(-1), 1 + np.exp(-4), np.exp(0)],
-    Rpsat=[1.0] * 4,
-    w=[1 / 4] * 4,
-):
+    x: np.ndarray,
+    Y0: float = 0.2,
+    Yinf: float = 0.8,
+    sigma: float | None = 0.01,
+    L: float | None = 0.0001,
+    PREC: list[int] = [100] * 4,
+    Xsat: list[float] = [1.0] * 4,
+    alpha: list[float] = [np.exp(1), np.exp(-1), 1 + np.exp(-4), np.exp(0)],
+    Rpsat: list[float] = [1.0] * 4,
+    w: list[float] = [1 / 4] * 4,
+) -> float:
     # x_noise = progress_noise(x,sigma,L)
     x_noise = None
     EPS = 10**-9
@@ -61,16 +71,13 @@ def comb(
     # POW4 with exponential tail
     x_pow = add_noise_and_break(x, x_noise, Xsat[0], Rpsat[0])
     pow_eps = (
-        Yinf
-        - (Yinf - Y0)
-        * (((PREC[0]) ** (1 / alpha[0]) - 1) / Xsat[0] * x_eps + 1) ** -alpha[0]
+        Yinf - (Yinf - Y0) * (((PREC[0]) ** (1 / alpha[0]) - 1) / Xsat[0] * x_eps + 1) ** -alpha[0]
     )
     pow_grad = (pow_eps[1] - pow_eps[0]) / EPS
     pow_y = np.where(
         x_pow > 0,
         Yinf
-        - (Yinf - Y0)
-        * (((PREC[0]) ** (1 / alpha[0]) - 1) / Xsat[0] * x_pow + 1) ** -alpha[0],
+        - (Yinf - Y0) * (((PREC[0]) ** (1 / alpha[0]) - 1) / Xsat[0] * x_pow + 1) ** -alpha[0],
         Y0 * np.exp(x_pow * (pow_grad + EPS) / Y0),
     )
 
@@ -110,7 +117,7 @@ def comb(
 
 
 class MLP(torch.nn.Module):
-    def __init__(self, num_inputs, num_outputs):
+    def __init__(self, num_inputs: int, num_outputs: int) -> None:
         super(MLP, self).__init__()
 
         num_layers = np.random.randint(8, 16)
@@ -138,7 +145,9 @@ class MLP(torch.nn.Module):
             "identity": torch.nn.Identity(),
         }[activation]
 
-    def reset_parameters(self, init_std=None, sparseness=None):
+    def reset_parameters(
+        self, init_std: float | None = None, sparseness: float | None = None
+    ) -> None:
         init_std = init_std if init_std is not None else self.init_std
         sparseness = sparseness if sparseness is not None else self.sparseness
         for linear in self.linears:
@@ -157,7 +166,7 @@ class MLP(torch.nn.Module):
                         torch.ones_like(linear.weight) * (1.0 - sparseness)
                     )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         for linear in self.linears[:-1]:
             x = linear(x)
             x = x + torch.randn_like(x) * self.preactivation_noise_std
@@ -167,10 +176,10 @@ class MLP(torch.nn.Module):
 
 
 class DatasetPrior:
-    def _get_model(self):
+    def _get_model(self) -> torch.nn.Module:
         return MLP(self.num_inputs, self.num_outputs).to("cpu")
 
-    def _output_for(self, input):
+    def _output_for(self, input: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
             # normalize the inputs
             input = self.normalizer(input)
@@ -183,19 +192,16 @@ class DatasetPrior:
             # output = output * self.output_sensitivity + self.output_offset
             return output
 
-    def __init__(self, num_params, num_outputs):
+    def __init__(self, num_params: int, num_outputs: int) -> None:
         self.num_features = num_params
         self.num_outputs = num_outputs
         self.num_inputs = num_params
-
-        N_datasets = 10000
-        N_per_dataset = 1
 
         self.normalizer = Normalize(0.5, math.sqrt(1 / 12))
 
         self.new_dataset()
 
-    def new_dataset(self):
+    def new_dataset(self) -> None:
         # reinitialize all dataset specific random variables
         # reinit the parameters of the BNN
         self.model = self._get_model()
@@ -213,7 +219,9 @@ class DatasetPrior:
         # self.output_sensitivity = np.random.uniform(size=(self.num_outputs,))
         # self.output_offset = np.random.uniform((self.output_sensitivity-1)/2,(1-self.output_sensitivity)/2)
 
-    def curves_for_configs(self, configs, noise=True):
+    def curves_for_configs(
+        self, configs: np.ndarray, noise: bool = True
+    ) -> Callable[[np.ndarray, int], np.ndarray]:
         # more efficient batch-wise
         ncurves = 4
         bnn_outputs = self.output_for_config(configs, noise=noise)
@@ -226,6 +234,7 @@ class DatasetPrior:
 
         # sample Yinf (shared by all components)
         Yinf = rng4config.uniform(a=Y0, b=self.ymax)  # 0
+        assert isinstance(Yinf, np.ndarray)
 
         # sample weights for basis curves (dirichlet)
         w = np.stack([rng4config.gamma(a=1) for i in range(ncurves)]).T  # 1, 2, 3, 4
@@ -243,6 +252,7 @@ class DatasetPrior:
 
         # sample saturation x for each basis curve
         Xsat_max = 10 ** rng4config.normal(0, 1)  # max saturation # 9
+        assert isinstance(Xsat_max, np.ndarray)
 
         Xsat_rel = np.stack(
             [rng4config.gamma(a=1) for i in range(ncurves)]
@@ -267,7 +277,7 @@ class DatasetPrior:
         # sigma_y_scaler = np.exp(rng4config.uniform(-5,0.0)) # STD of the yGP 23
         # L = 10**rng4config.normal(-5,1) # Length-scale of the xyGP 24
 
-        def foo(x_, cid=0):
+        def foo(x_: np.ndarray, cid: int = 0) -> np.ndarray:
             warnings.filterwarnings("ignore")
             y_ = comb(
                 x_,
@@ -289,71 +299,79 @@ class DatasetPrior:
 
         return foo
 
-    def output_for_config(self, config, noise=True):
+    def output_for_config(self, config: np.ndarray, noise: bool = True) -> np.ndarray:
         # add aleatoric noise & bias
         output = self._output_for(torch.from_numpy(config))
         return output.numpy()
 
-    def uniform(self, bnn_output, a=0.0, b=1.0):
+    def uniform(self, bnn_output: np.ndarray, a: float = 0.0, b: float = 1.0) -> np.ndarray:
         indices = np.searchsorted(OUTPUT_SORTED, bnn_output, side="left")
         return (b - a) * indices / len(OUTPUT_SORTED) + a
 
-    def normal(self, bnn_output, loc=0, scale=1):
+    def normal(self, bnn_output: np.ndarray, loc: float = 0, scale: float = 1) -> np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return norm.ppf(u, loc=loc, scale=scale)
 
-    def beta(self, bnn_output, a=1, b=1, loc=0, scale=1):
+    def beta(
+        self, bnn_output: np.ndarray, a: float = 1, b: float = 1, loc: float = 0, scale: float = 1
+    ) -> np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return beta.ppf(u, a=a, b=b, loc=loc, scale=scale)
 
-    def gamma(self, bnn_output, a=1, loc=0, scale=1):
+    def gamma(
+        self, bnn_output: np.ndarray, a: float = 1, loc: float = 0, scale: float = 1
+    ) -> np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return gamma.ppf(u, a=a, loc=loc, scale=scale)
 
-    def exponential(self, bnn_output, scale=1):
+    def exponential(self, bnn_output: np.ndarray, scale: float = 1) -> np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(bnn_output, a=eps, b=1 - eps)
         return expon.ppf(u, scale=scale)
 
 
 class MyRNG:
-    def __init__(self, indices):
+    def __init__(self, indices: np.ndarray) -> None:
         self.indices = indices.T
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         self.counter = 0
 
-    def uniform(self, a=0.0, b=1.0):
+    def uniform(self, a: float = 0.0, b: float = 1.0) -> float | np.ndarray:
         u = (b - a) * self.indices[self.counter] / len(OUTPUT_SORTED) + a
         self.counter += 1
         return u
 
-    def normal(self, loc=0, scale=1):
+    def normal(self, loc: float = 0, scale: float = 1) -> float | np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return norm.ppf(u, loc=loc, scale=scale)
 
-    def beta(self, a=1, b=1, loc=0, scale=1):
+    def beta(
+        self, a: float = 1, b: float = 1, loc: float = 0, scale: float = 1
+    ) -> float | np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return beta.ppf(u, a=a, b=b, loc=loc, scale=scale)
 
-    def gamma(self, a=1, loc=0, scale=1):
+    def gamma(self, a: float = 1, loc: float = 0, scale: float = 1) -> float | np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return gamma.ppf(u, a=a, loc=loc, scale=scale)
 
-    def exponential(self, scale=1):
+    def exponential(self, scale: float = 1) -> float | np.ndarray:
         eps = 0.5 / len(OUTPUT_SORTED)  # to avoid infinite samples
         u = self.uniform(a=eps, b=1 - eps)
         return expon.ppf(u, scale=scale)
 
 
-def curve_prior(dataset, config):
+def curve_prior(
+    dataset: DatasetPrior, config: np.ndarray
+) -> Callable[[np.ndarray, int], np.ndarray]:
     # calls the more efficient batch-wise method
     return dataset.curves_for_configs(np.array([config]))
 
@@ -361,14 +379,14 @@ def curve_prior(dataset, config):
 # function producing batches for PFN training
 @torch.no_grad()
 def get_batch(
-    batch_size,
-    seq_len,
-    num_features,
-    single_eval_pos,
-    device=default_device,
-    hyperparameters=None,
-    **kwargs,
-):
+    batch_size: int,
+    seq_len: int,
+    num_features: int,
+    single_eval_pos: int,
+    device: torch.device = default_device,
+    hyperparameters: dict[str, Any] | None = None,
+    **kwargs: Any,
+) -> Batch:
     # assert num_features == 2
     assert num_features >= 2
     EPS = 10**-9
@@ -376,9 +394,7 @@ def get_batch(
     if hyperparameters is not None and "hp_dim" in hyperparameters:
         num_params = hyperparameters["hp_dim"]
     else:
-        num_params = np.random.randint(
-            1, num_features - 1
-        )  # beware upper bound is exclusive!
+        num_params = np.random.randint(1, num_features - 1)  # beware upper bound is exclusive!
 
     dataset_prior = DatasetPrior(num_params, 23)
 
@@ -471,7 +487,7 @@ def get_batch(
 
 
 class MultiCurvesEncoder(torch.nn.Module):
-    def __init__(self, in_dim, out_dim):
+    def __init__(self, in_dim: int, out_dim: int) -> None:
         super().__init__()
         seq_len = 1000
         self.normalizer = torch.nn.Sequential(
@@ -479,11 +495,11 @@ class MultiCurvesEncoder(torch.nn.Module):
         )
         self.epoch_enc = torch.nn.Linear(1, out_dim, bias=False)
         self.idcurve_enc = torch.nn.Embedding(seq_len + 1, out_dim)
-        self.configuration_enc = encoders.get_variable_num_features_encoder(
-            encoders.Linear
-        )(in_dim - 2, out_dim)
+        self.configuration_enc = encoders.get_variable_num_features_encoder(encoders.Linear)(
+            in_dim - 2, out_dim
+        )
 
-    def forward(self, *x, **kwargs):
+    def forward(self, x: torch.Tensor, **kwargs: Any) -> torch.Tensor:
         x = torch.cat(x, dim=-1)
         out = (
             self.epoch_enc(self.normalizer(x[..., 1:2]))
@@ -493,14 +509,18 @@ class MultiCurvesEncoder(torch.nn.Module):
         return out
 
 
-def get_encoder():
+def get_encoder() -> Callable[[int, int], torch.nn.Module]:
     return lambda num_features, emsize: MultiCurvesEncoder(num_features, emsize)
 
 
-def sample_curves(num_hyperparameters=1000, curve_length=100, hyperparameter_dimensions=2):
+def sample_curves(
+    num_hyperparameters: int = 1000, curve_length: int = 100, hyperparameter_dimensions: int = 2
+) -> tuple[np.ndarray, np.ndarray]:
     dataset_prior = DatasetPrior(hyperparameter_dimensions, 23)
     hyperparameters = np.random.uniform(size=(num_hyperparameters, hyperparameter_dimensions))
     dataset_prior.new_dataset()
     curve_sampler = dataset_prior.curves_for_configs(hyperparameters)
-    curves = np.array([curve_sampler(x_=np.linspace(0, 1, curve_length), cid=cid) for cid in range(num_hyperparameters)])
+    curves = np.array(
+        [curve_sampler(np.linspace(0, 1, curve_length), cid) for cid in range(num_hyperparameters)]
+    )
     return hyperparameters, curves
