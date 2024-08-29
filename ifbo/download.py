@@ -45,7 +45,7 @@ def download_and_decompress(url: str, path: Path) -> bool:
     """
     # Check if the file already exists
     if path.exists():
-        print(f"File already exists at {path.parent.absolute()}!")
+        print(f"Surrogate weights already exists at {path.parent.absolute()}!")
         return True
 
     # Send a HTTP request to the URL of the file
@@ -67,9 +67,9 @@ def download_and_decompress(url: str, path: Path) -> bool:
         success_flag = False
 
     if success_flag:
-        print(f"Successfully downloaded and decompressed the file at {path.parent.absolute()}!")
+        print(f"Successfully downloaded and decompressed the surrogate at {path.parent.absolute()}!")
     else:
-        print(f"Failed to download and decompress the file at {path.parent.absolute()}!")
+        print(f"Failed to download and decompress the surrogate at {path.parent.absolute()}!")
 
     return success_flag
 
