@@ -1,6 +1,8 @@
 __pycache__/
 */__pycache__/
 */*/__pycache__/
+ifBO.egg-info/
+
 
 *data*/
 *build*/
