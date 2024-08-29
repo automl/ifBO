@@ -69,11 +69,11 @@ class FTPFN(torch.nn.Module):
         self.device = device
 
         if self.version not in VERSION_MAP:
-            raise ValueError(f"Version {version} is not available")
+            raise ValueError(f"Version {version} is not available for the surrogate model!")
 
         _target_file_zip = self.target_path / FILENAME(self.version)
         if not download_and_decompress(url=FILE_URL(self.version), path=_target_file_zip):
-            raise ValueError(f"Failed to download and decompress the file at {self.target_path}!")
+            raise ValueError(f"Failed to download and decompress the surrogate at {self.target_path}!")
 
         # Loading and initializing the model with the pre-trained weights
         self.model = torch.load(
