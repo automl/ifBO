@@ -337,7 +337,12 @@ def run_neps(args):
     # end of run_neps
 
     if "mf" in args.algorithm and args.algorithm.mf:
-        plotter = Plotter3D()
+        plotter = Plotter3D(
+            algorithm=args.algorithm.name,
+            benchmark=args.benchmark.name,
+            experiment_group=args.experiment_group,
+            seed=args.seed
+        )
         _df = pd.read_csv(
             Path().cwd() / "neps_root_directory" / "summary_csv" / "config_data.csv",
             float_precision="round_trip"
