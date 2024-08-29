@@ -30,7 +30,7 @@ def _resolve_model_path(target_path: Path = None) -> Path:
         target_path = Path.cwd().absolute() / ".model"
         warnings.warn(
             "No target path provided. "
-            f"Saving the model in the current working directory: {target_path}"
+            f"Defaulting to current working directory: {target_path}"
         )
     if target_path.name == ".model" and target_path.is_dir():
         target_path = target_path.absolute()
