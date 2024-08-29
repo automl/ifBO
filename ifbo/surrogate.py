@@ -46,7 +46,7 @@ def _resolve_model_path(target_path: Path = None) -> Path:
     return target_path
 
 
-class FTPFN:
+class FTPFN(torch.nn.Module):
     """FTPFN surrogate model."""
 
     def __init__(
