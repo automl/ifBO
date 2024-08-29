@@ -88,6 +88,13 @@ class FTPFN(torch.nn.Module):
 
         Function to perform Bayesian inference using FT-PFN that uses the logits obtained to
         compute various measures like likelihood, UCB, EI, PI, and quantile.
+
+        Args:
+            context (list[Curve]): List of context curves.
+            query (list[Curve]): List of query curves.
+        
+        Returns:
+            list[PredictionResult]: List of prediction results for each query curve
         """
         x_train, y_train, x_test = tokenize(context, query, device=self.device)
         logits = self(x_train=x_train, y_train=y_train, x_test=x_test)
@@ -103,6 +110,8 @@ class FTPFN(torch.nn.Module):
     def _check_input(
         self, x_train: torch.Tensor, y_train: torch.Tensor, x_test: torch.Tensor
     ) -> None:
+        """Check the input values.
+        """
         if y_train.min() < 0 or y_train.max() > 1:
             raise Exception("y values should be in the range [0,1]")
         if (
@@ -130,7 +139,17 @@ class FTPFN(torch.nn.Module):
     def forward(
         self, x_train: torch.Tensor, y_train: torch.Tensor, x_test: torch.Tensor
     ) -> torch.Tensor:
-        """Forward pass through the model."""
+        """Forward pass through the model.
+        
+        Args:
+            x_train (torch.Tensor): context points, shape (n_context_observations x features).
+            y_train (torch.Tensor): context values, shape (n_context_observations).
+            x_test (torch.Tensor): query points, shape (n_query_observations x features).
+        
+        Returns:
+            torch.Tensor: logits for the query points.
+        """
+
         self._check_input(x_train, y_train, x_test)
         if x_train.shape[0] == 0:
             x_test[:, 0] = 0
