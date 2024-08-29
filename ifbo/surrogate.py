@@ -16,12 +16,11 @@ from ifbo.utils import PredictionResult
 from ifbo.utils import tokenize
 
 
-def _resolve_model_path(target_path: Path, version: str) -> Path:
+def _resolve_model_path(target_path: Path = None) -> Path:
     """Resolve the model path.
 
     Args:
         target_path (Path): Path to the trained model.
-        version (str): Version of the model.
 
     Returns:
         path: Path to the trained model.
@@ -33,27 +32,26 @@ def _resolve_model_path(target_path: Path, version: str) -> Path:
             "No target path provided. "
             f"Saving the model in the current working directory: {target_path}"
         )
+    if target_path.name == ".model" and target_path.is_dir():
+        target_path = target_path.absolute()
+    elif (target_path / ".model").is_dir() or (
+        target_path.is_dir() and not (target_path / ".model").is_dir()
+    ):
+        # if target_path is a directory, and if `.model` subdirectory exists or not
+        target_path = (target_path / ".model").absolute()
     else:
-        if target_path.name == ".model" and target_path.is_dir():
-            target_path = target_path.absolute()
-        elif (target_path / ".model").is_dir() or (
-            target_path.is_dir() and not (target_path / ".model").is_dir()
-        ):
-            # if target_path is a directory, and if `.model` subdirectory exists or not
-            target_path = (target_path / ".model").absolute()
-        else:
-            raise ValueError("Invalid target path. Please provide a valid directory path.")
+        raise ValueError("Invalid target path. Please provide a valid directory path.")
     target_path.mkdir(parents=True, exist_ok=True)
 
     return target_path
 
 
-class FTPFN(torch.nn.Module):
+class FTPFN:
     """FTPFN surrogate model."""
 
     def __init__(
         self,
-        target_path: Path,
+        target_path: Path = None,
         version: str = "0.0.1",
         device: torch.device | None = None,
     ):
@@ -67,16 +65,14 @@ class FTPFN(torch.nn.Module):
         super(FTPFN, self).__init__()
 
         self.version = version
-        self.target_path = _resolve_model_path(target_path, self.version)
+        self.target_path = _resolve_model_path(target_path)  #, self.version)
         self.device = device
 
         if self.version not in VERSION_MAP:
             raise ValueError(f"Version {version} is not available")
 
         _target_file_zip = self.target_path / FILENAME(self.version)
-        if not download_and_decompress(
-            url=FILE_URL(self.version), path=_target_file_zip, version=version
-        ):
+        if not download_and_decompress(url=FILE_URL(self.version), path=_target_file_zip):
             raise ValueError(f"Failed to download and decompress the file at {self.target_path}!")
 
         # Loading and initializing the model with the pre-trained weights

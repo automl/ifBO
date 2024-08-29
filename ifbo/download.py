@@ -32,7 +32,7 @@ def WEIGHTS_FINAL_NAME(version: str) -> str:
     return f"{VERSION_MAP[version].get('final_name')}.{VERSION_MAP[version].get('extension')}"
 
 
-def download_and_decompress(url: str, path: Path, version: str = "0.0.1") -> bool:
+def download_and_decompress(url: str, path: Path) -> bool:
     """Helper function to download a file from a URL and decompress it and store by given name.
 
     Args:
@@ -43,6 +43,11 @@ def download_and_decompress(url: str, path: Path, version: str = "0.0.1") -> boo
     Returns:
         bool: Flag to indicate if the download and decompression was successful
     """
+    # Check if the file already exists
+    if path.exists():
+        print(f"File already exists at {path.parent.absolute()}!")
+        return True
+
     # Send a HTTP request to the URL of the file
     response = requests.get(url, allow_redirects=True)
 
