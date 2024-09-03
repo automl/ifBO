@@ -1,6 +1,7 @@
 import os
 import torch
 import argparse
+import submitit
 import numpy as np
 from pfns4hpo.evaluate import _get_normalized_values
 from taskids import lcbench_ids, pd1_ids, taskset_ids
@@ -81,8 +82,9 @@ def generate_tasks(
         # assign max fidelity to all curves in context
         # specific to the evaluation in 5.1
         unique_curves = np.unique(id_curve[:single_eval_pos])
+        nbiud = len(id_curve[single_eval_pos:(single_eval_pos+len(unique_curves))])
         num_unique_curves = len(unique_curves)
-        id_curve[single_eval_pos : single_eval_pos + num_unique_curves] = unique_curves
+        id_curve[single_eval_pos : single_eval_pos + num_unique_curves] = unique_curves[:nbiud]
         end_pos = min(single_eval_pos + num_unique_curves, seq_len)
         epoch[single_eval_pos:end_pos] = max_fidelities
 
@@ -118,6 +120,10 @@ def generate_tasks(
             f"{output_name}_{ntasks_per_dataset}bs_{single_eval_pos}sep.pt",
         ),
     )
+
+class BoschSlurmExecutor(submitit.AutoExecutor):
+    def _make_submission_command(self, submission_file_path):
+        return ["sbatch", str(submission_file_path), "--bosch"]
 
 
 if __name__ == "__main__":
@@ -165,3 +171,15 @@ if __name__ == "__main__":
 
     for config in configs:
         generate_tasks(**config)
+
+    """
+    executor = BoschSlurmExecutor(folder=".slurms/logs")
+    executor.update_parameters(
+        timeout_min=60*3,
+        cpus_per_task=1,
+        nodes=1,
+    )
+    with executor.batch():
+        for config in configs:
+            executor.submit(generate_tasks, **config)
+    """
