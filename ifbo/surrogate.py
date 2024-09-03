@@ -65,8 +65,15 @@ class FTPFN(torch.nn.Module):
         super(FTPFN, self).__init__()
 
         self.version = version
+        if target_path is None:
+            # choose the current working directory if no path is provided
+            target_path = Path.cwd().absolute()
+            warnings.warn(
+                "No target path provided. "
+                f"Defaulting to current working directory: {target_path}"
+            )
         self.target_path = _resolve_model_path(
-            target_path if isinstance(target_path, Path) else Path(target_path)
+            Path(target_path).absolute() if isinstance(target_path, str) else target_path.absolute()
         )
         self.device = device
 
