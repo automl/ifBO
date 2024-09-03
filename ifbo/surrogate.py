@@ -51,7 +51,7 @@ class FTPFN(torch.nn.Module):
 
     def __init__(
         self,
-        target_path: Path = None,
+        target_path: Path | str = None,
         version: str = "0.0.1",
         device: torch.device | None = None,
     ):
@@ -65,7 +65,9 @@ class FTPFN(torch.nn.Module):
         super(FTPFN, self).__init__()
 
         self.version = version
-        self.target_path = _resolve_model_path(target_path)  # , self.version)
+        self.target_path = _resolve_model_path(
+            target_path if isinstance(target_path, Path) else Path(target_path)
+        )
         self.device = device
 
         if self.version not in VERSION_MAP:
