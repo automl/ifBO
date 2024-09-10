@@ -80,7 +80,7 @@ def evaluate(benchmark_name, task_id, sep, model_name, data_path):
 
     data = torch.load(
         os.path.join(
-            "tasks", benchmark, f"{output_name}_{cases_per_dataset}bs_{sep}sep.pt"
+            "tasks", benchmark_name, f"{output_name}_{cases_per_dataset}bs_{sep}sep.pt"
         )
     )
     data[..., -1] = 1 - data[..., -1]
