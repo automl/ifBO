@@ -89,6 +89,8 @@ class FTPFN(torch.nn.Module):
         self.model = torch.load(
             os.path.join(self.target_path, WEIGHTS_FINAL_NAME(version)),
             map_location=self.device if self.device is not None else torch.device("cpu"),
+            # TODO: See issue #12
+            weights_only=False,
         )
         self.model.eval()
 
