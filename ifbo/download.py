@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import tarfile
 
 import requests
 
@@ -32,46 +33,38 @@ def WEIGHTS_FINAL_NAME(version: str) -> str:
     return f"{VERSION_MAP[version].get('final_name')}.{VERSION_MAP[version].get('extension')}"
 
 
-def download_and_decompress(url: str, path: Path) -> bool:
+def download_and_decompress(url: str, path: Path) -> None:
     """Helper function to download a file from a URL and decompress it and store by given name.
 
     Args:
         url (str): URL of the file to download
         path (Path): Path along with filename to save the downloaded file
-        version (str, optional): Version of the model. Defaults to "0.0.1".
 
     Returns:
         bool: Flag to indicate if the download and decompression was successful
     """
     # Check if the file already exists
     if path.exists():
-        print(f"Surrogate weights already exists at {path.parent.absolute()}!")
-        return True
+        return
 
     # Send a HTTP request to the URL of the file
     response = requests.get(url, allow_redirects=True)
 
-    success_flag = True
     # Check if the request is successful
-    if response.status_code == 200:
-        # Save the .tar.gz file
-        with open(path, "wb") as f:
-            f.write(response.content)
-        # Decompress the .tar.gz file
-        if path.name.endswith(".tar.gz") and path.exists():
-            os.system(f"tar -xvf {path} -C {path.parent.absolute()} > /dev/null 2>&1")
-        else:
-            success_flag = False
-            print(f"Failed to find surrogate file at {path}!")
-    else:
-        success_flag = False
+    if response.status_code != 200:
+        raise ValueError(
+            f"Failed to download the surrogate from {url}."
+            f" Recieved HTTP status code: {response.status_code}."
+            "Please either try again later, use an alternative link or contact the authors through github."
+        )
 
-    if success_flag:
-        print(f"Successfully downloaded and decompressed the surrogate at {path.parent.absolute()}!")
-    else:
-        print(f"Failed to download and decompress the surrogate at {path.parent.absolute()}!")
+    # Save the .tar.gz file
+    with open(path, "wb") as f:
+        f.write(response.content)
 
-    return success_flag
+    # Decompress the .tar.gz file
+    with tarfile.open(path, "r:gz") as tar:
+        tar.extractall(path.parent.absolute())
 
 
 def parse_args() -> argparse.Namespace:
@@ -103,11 +96,7 @@ if __name__ == "__main__":
         os.makedirs(args.path)
 
     # Use the function
-    if download_and_decompress(
-        url=VERSION_MAP[args.version]["url"],
-        path=args.path / FILENAME(args.version),
-        version=args.version,
-    ):
-        print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")
-    else:
-        print(f"Failed to download FT-PFN v{args.version} in to {args.path}!")
+    download_and_decompress(
+        url=VERSION_MAP[args.version]["url"], path=args.path / FILENAME(args.version)
+    )
+    print(f"Successfully downloaded FT-PFN v{args.version} in to {args.path}!")

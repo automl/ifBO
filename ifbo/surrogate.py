@@ -16,11 +16,11 @@ from ifbo.utils import PredictionResult
 from ifbo.utils import tokenize
 
 
-def _resolve_model_path(target_path: Path = None) -> Path:
+def _resolve_model_path(target_path: Path | None = None) -> Path:
     """Resolve the model path.
 
     Args:
-        target_path (Path): Path to the trained model.
+        target_path: Path to the trained model.
 
     Returns:
         path: Path to the trained model.
@@ -29,8 +29,7 @@ def _resolve_model_path(target_path: Path = None) -> Path:
     if target_path is None:
         target_path = Path.cwd().absolute() / ".model"
         warnings.warn(
-            "No target path provided. "
-            f"Defaulting to current working directory: {target_path}"
+            "No target path provided. " f"Defaulting to current working directory: {target_path}"
         )
     if target_path.name == ".model" and target_path.is_dir():
         target_path = target_path.absolute()
@@ -51,7 +50,7 @@ class FTPFN(torch.nn.Module):
 
     def __init__(
         self,
-        target_path: Path | str = None,
+        target_path: Path | str | None = None,
         version: str = "0.0.1",
         device: torch.device | None = None,
     ):
@@ -69,11 +68,14 @@ class FTPFN(torch.nn.Module):
             # choose the current working directory if no path is provided
             target_path = Path.cwd().absolute()
             warnings.warn(
-                "No target path provided. "
-                f"Defaulting to current working directory: {target_path}"
+                "No target path provided. Defaulting to current"
+                f" working directory: {target_path}."
+                "\nPlease provide the above path or any other valid path to avoid this warning."
             )
         self.target_path = _resolve_model_path(
-            Path(target_path).absolute() if isinstance(target_path, str) else target_path.absolute()
+            Path(target_path).absolute()
+            if isinstance(target_path, str)
+            else target_path.absolute()
         )
         self.device = device
 
@@ -81,13 +83,14 @@ class FTPFN(torch.nn.Module):
             raise ValueError(f"Version {version} is not available for the surrogate model!")
 
         _target_file_zip = self.target_path / FILENAME(self.version)
-        if not download_and_decompress(url=FILE_URL(self.version), path=_target_file_zip):
-            raise ValueError(f"Failed to download and decompress the surrogate at {self.target_path}!")
+        download_and_decompress(url=FILE_URL(self.version), path=_target_file_zip)
 
         # Loading and initializing the model with the pre-trained weights
         self.model = torch.load(
             os.path.join(self.target_path, WEIGHTS_FINAL_NAME(version)),
             map_location=self.device if self.device is not None else torch.device("cpu"),
+            # TODO: See issue #12
+            weights_only=False,
         )
         self.model.eval()
 
@@ -101,7 +104,7 @@ class FTPFN(torch.nn.Module):
         Args:
             context (list[Curve]): List of context curves.
             query (list[Curve]): List of query curves.
-        
+
         Returns:
             list[PredictionResult]: List of prediction results for each query curve
         """
@@ -119,8 +122,7 @@ class FTPFN(torch.nn.Module):
     def _check_input(
         self, x_train: torch.Tensor, y_train: torch.Tensor, x_test: torch.Tensor
     ) -> None:
-        """Check the input values.
-        """
+        """Check the input values."""
         if y_train.min() < 0 or y_train.max() > 1:
             raise Exception("y values should be in the range [0,1]")
         if (
@@ -149,12 +151,12 @@ class FTPFN(torch.nn.Module):
         self, x_train: torch.Tensor, y_train: torch.Tensor, x_test: torch.Tensor
     ) -> torch.Tensor:
         """Forward pass through the model.
-        
+
         Args:
             x_train (torch.Tensor): context points, shape (n_context_observations x features).
             y_train (torch.Tensor): context values, shape (n_context_observations).
             x_test (torch.Tensor): query points, shape (n_query_observations x features).
-        
+
         Returns:
             torch.Tensor: logits for the query points.
         """
