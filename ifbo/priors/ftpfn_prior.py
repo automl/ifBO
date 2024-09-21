@@ -273,7 +273,6 @@ class DatasetPrior:
         # sample noise parameters
         sigma = np.exp(rng4config.normal(loc=-5, scale=1))
         # sigma_x = np.exp(rng4config.normal(-4,0.5)) # STD of the xGP 22
-        # print("warning")
         # sigma_y_scaler = np.exp(rng4config.uniform(-5,0.0)) # STD of the yGP 23
         # L = 10**rng4config.normal(-5,1) # Length-scale of the xyGP 24
 
@@ -409,12 +408,10 @@ def get_batch(
 
         # determine the number of fidelity levels (ranging from 1: BB, up to seq_len)
         n_levels = int(np.round(10 ** np.random.uniform(0, 3)))
-        # print(f"n_levels: {n_levels}")
 
         # determine # observations/queries per curve
         # TODO: also make this a dirichlet thing
         alpha = 10 ** np.random.uniform(-4, -1)
-        # print(f"alpha: {alpha}")
         weights = np.random.gamma(alpha, alpha, seq_len) + EPS
         p = weights / np.sum(weights)
         ids = np.arange(seq_len)

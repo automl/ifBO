@@ -53,7 +53,6 @@ class _PositionalEncoding(nn.Module):
                 * math.log(math.sqrt(2))
             )
         )
-        # print(div_term/2/math.pi)
         pe[..., 0::2] = torch.sin(x.unsqueeze(-1) * div_term)
         pe[..., 1::2] = torch.cos(x.unsqueeze(-1) * div_term)
         return self.dropout(pe).view(x.shape[0], x.shape[1], self.d_model)
@@ -87,7 +86,6 @@ class EmbeddingEncoder(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # T x B x num_features
         x_idxs = self.discretize(x)
         x_idxs += torch.arange(x.shape[-1], device=x.device).view(1, 1, -1) * self.num_embs
-        # print(x_idxs,self.embeddings.weight.shape)
         return self.embeddings(x_idxs).mean(-2)
 
 
