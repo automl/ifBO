@@ -300,7 +300,6 @@ class StoredictKeyPair(argparse.Action):
                 except NameError:
                     my_dict[k] = v
         setattr(namespace, self.dest, my_dict)
-        print("dict values: {}".format(my_dict))
 
 
 def get_nan_value(v: float, set_value_to_nan: float = 1.0) -> float:
@@ -397,7 +396,6 @@ def remove_outliers(
 
     X = torch.maximum(-torch.log(1 + torch.abs(X)) + lower, X)
     X = torch.minimum(torch.log(1 + torch.abs(X)) + upper, X)
-    # print(ds[1][data < lower, col], ds[1][data > upper, col], ds[1][~np.isnan(data), col].shape, data_mean, data_std)
     return X
 
 

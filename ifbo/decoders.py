@@ -18,8 +18,6 @@ class ScaledDecoder(nn.Module):
         temps = self.linear2(x).softmax(-1) @ torch.tensor(
             [1.0, 1.4, 1.7, 2.0, 5.0, 10.0, 20.0, 40.0, 80.0, 160.0], device=x.device
         )
-        if random.random() > 0.99:
-            print(temps.shape, temps[:, :2])
         return self.linear1(x) / temps.unsqueeze(-1)
 
 

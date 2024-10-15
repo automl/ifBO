@@ -3,6 +3,8 @@ from typing import Any
 import torch
 from torch import nn
 
+import logging
+
 
 class BarDistribution(nn.Module):
     def __init__(
@@ -45,7 +47,6 @@ class BarDistribution(nn.Module):
         if ignore_loss_mask.any():
             if not self.ignore_nan_targets:
                 raise ValueError(f"Found NaN in target {y}")
-            print("A loss was ignored because there was nan target.")
         y[ignore_loss_mask] = self.borders[
             0
         ]  # this is just a default value, it will be ignored anyway
@@ -78,7 +79,7 @@ class BarDistribution(nn.Module):
         )  # T x B
         if mean_prediction_logits is not None:
             if not self.training:
-                print("Calculating loss incl mean prediction loss for nonmyopic BO.")
+                logging.warning("Calculating loss incl mean prediction loss for nonmyopic BO.")
             scaled_mean_log_probs = self.compute_scaled_log_probs(mean_prediction_logits)
             nll_loss = torch.cat((nll_loss, self.mean_loss(logits, scaled_mean_log_probs)), 0)
         smooth_loss = -scaled_bucket_log_probs.mean(dim=-1)
@@ -273,11 +274,9 @@ class FullSupportBarDistribution(BarDistribution):
             assert (
                 not ignore_loss_mask.any()
             ), "Ignoring examples is not implemented with mean pred."
-            if not self.training:
-                print("Calculating loss incl mean prediction loss for nonmyopic BO.")
             if not torch.is_grad_enabled():
-                print(
-                    "Warning: loss is not correct in absolute terms, only the gradient is right, when using `append_mean_pred`."
+                logging.warning(
+                    "loss is not correct in absolute terms, only the gradient is right, when using `append_mean_pred`."
                 )
             scaled_mean_log_probs = self.compute_scaled_log_probs(mean_prediction_logits)
             nll_loss = torch.cat((nll_loss, self.mean_loss(logits, scaled_mean_log_probs)), 0)
@@ -395,7 +394,6 @@ class FullSupportBarDistribution(BarDistribution):
         try:
             ucdf = normal.cdf(u)
         except ValueError:
-            print(f"u: {u}, best_f: {best_f}, scale: {scale}")
             raise
         updf = torch.exp(normal.log_prob(u))
         normal_ei = scale * (updf + u * ucdf)
@@ -463,7 +461,7 @@ def get_bucket_limits(
         ys = ys[~torch.isnan(ys)]
         if len(ys) % num_outputs:
             ys = ys[: -(len(ys) % num_outputs)]
-        print(
+        logging.info(
             f"Using {len(ys)} y evals to estimate {num_outputs} buckets. Cut off the last {len(ys) % num_outputs} ys."
         )
         ys_per_bucket = len(ys) // num_outputs
@@ -480,10 +478,9 @@ def get_bucket_limits(
             + ys_sorted[ys_per_bucket::ys_per_bucket]
         ) / 2
         if verbose:
-            print(
+            logging.info(
                 f"Using {len(ys)} y evals to estimate {num_outputs} buckets. Cut off the last {len(ys) % num_outputs} ys."
             )
-            print(full_range)
         assert isinstance(full_range, torch.Tensor)
         bucket_limits = torch.cat(
             [full_range[0].unsqueeze(0), bucket_limits, full_range[1].unsqueeze(0)], 0
