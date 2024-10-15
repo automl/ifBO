@@ -21,6 +21,8 @@ pip install -U ifBO
 
 ## Surrogate API
 
+Checkout out this [notebook](https://github.com/automl/ifBO/blob/main/examples/Getting%20started%20with%20ifBO.ipynb).
+
 **Initializing the model**
 
 ```python

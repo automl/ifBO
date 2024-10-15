@@ -24,6 +24,18 @@ from ifbo.priors.prior import Batch
 
 @dataclass
 class Curve:
+    """
+    A class to represent a performance curve.
+
+    Attributes:
+    -----------
+    hyperparameters : torch.Tensor
+        A tensor containing the hyperparameters. Should not have more than 10 dimensions and values should be in the range [0, 1].
+    t : torch.Tensor
+        A tensor containing the time steps. Values should be in the range [0, 1].
+    y : torch.Tensor | None, optional
+        A tensor containing the performance values (higher is better). Values should be in the range [0, 1]. Default is None.
+    """
     hyperparameters: torch.Tensor
     t: torch.Tensor
     y: torch.Tensor | None = None
