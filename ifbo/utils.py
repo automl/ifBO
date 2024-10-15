@@ -24,6 +24,19 @@ from ifbo.priors.prior import Batch
 
 @dataclass
 class Curve:
+    """
+    A class to represent a performance curve.
+
+    Attributes:
+    -----------
+    hyperparameters : torch.Tensor
+        A tensor containing the hyperparameters. Should not have more than 10 dimensions and values should be in the range [0, 1].
+    t : torch.Tensor
+        A tensor containing the time steps. Values should be in the range [0, 1].
+    y : torch.Tensor | None, optional
+        A tensor containing the performance values (higher is better). Values should be in the range [0, 1]. Default is None.
+    """
+
     hyperparameters: torch.Tensor
     t: torch.Tensor
     y: torch.Tensor | None = None
@@ -31,27 +44,88 @@ class Curve:
 
 @dataclass(unsafe_hash=True)
 class PredictionResult:
+    """
+    A dataclass for storing prediction results and computing various metrics.
+
+    Attributes:
+        logits (torch.Tensor): The logits output from the model.
+        criterion (BarDistribution): The criterion used for computing various metrics.
+
+    Methods:
+        likelihood(y_test: torch.Tensor) -> torch.Tensor:
+            Computes the negative log-likelihood of the test targets.
+
+        ucb() -> torch.Tensor:
+            Computes the upper confidence bound (UCB) of the logits.
+
+        ei(y_best: torch.Tensor) -> torch.Tensor:
+            Computes the expected improvement (EI) given the best observed value.
+
+        pi(y_best: torch.Tensor) -> torch.Tensor:
+            Computes the probability of improvement (PI) given the best observed value.
+
+        quantile(q: float) -> torch.Tensor:
+            Computes the quantile of the logits at the given quantile level.
+    """
+
     logits: torch.Tensor
     criterion: BarDistribution
 
-    @torch.no_grad()
     def likelihood(self, y_test: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the log-likelihood of the test targets.
+
+        Args:
+            y_test (torch.Tensor): The test targets.
+
+        Returns:
+            torch.Tensor: The log-likelihood.
+        """
         return -self.criterion(self.logits, y_test).squeeze(1)
 
-    @torch.no_grad()
     def ucb(self) -> torch.Tensor:
+        """
+        Computes the upper confidence bound (UCB) of the logits.
+
+        Returns:
+            torch.Tensor: The upper confidence bound.
+        """
         return self.criterion.ucb(self.logits, best_f=None).squeeze(1)
 
-    @torch.no_grad()
     def ei(self, y_best: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the expected improvement (EI) given the best observed value.
+
+        Args:
+            y_best (torch.Tensor): The best observed value.
+
+        Returns:
+            torch.Tensor: The expected improvement.
+        """
         return self.criterion.ei(self.logits, best_f=y_best).squeeze(1)
 
-    @torch.no_grad()
     def pi(self, y_best: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the probability of improvement (PI) given the best observed value.
+
+        Args:
+            y_best (torch.Tensor): The best observed value.
+
+        Returns:
+            torch.Tensor: The probability of improvement.
+        """
         return self.criterion.pi(self.logits, best_f=y_best).squeeze(1)
 
-    @torch.no_grad()
     def quantile(self, q: float) -> torch.Tensor:
+        """
+        Computes the quantile of the logits at the given quantile level.
+
+        Args:
+            q (float): The quantile level.
+
+        Returns:
+            torch.Tensor: The quantile at the given level.
+        """
         return self.criterion.icdf(self.logits, q).squeeze(1)
 
 
