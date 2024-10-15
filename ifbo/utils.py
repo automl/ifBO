@@ -36,6 +36,7 @@ class Curve:
     y : torch.Tensor | None, optional
         A tensor containing the performance values (higher is better). Values should be in the range [0, 1]. Default is None.
     """
+
     hyperparameters: torch.Tensor
     t: torch.Tensor
     y: torch.Tensor | None = None
@@ -53,16 +54,16 @@ class PredictionResult:
     Methods:
         likelihood(y_test: torch.Tensor) -> torch.Tensor:
             Computes the negative log-likelihood of the test targets.
-        
+
         ucb() -> torch.Tensor:
             Computes the upper confidence bound (UCB) of the logits.
-        
+
         ei(y_best: torch.Tensor) -> torch.Tensor:
             Computes the expected improvement (EI) given the best observed value.
-        
+
         pi(y_best: torch.Tensor) -> torch.Tensor:
             Computes the probability of improvement (PI) given the best observed value.
-        
+
         quantile(q: float) -> torch.Tensor:
             Computes the quantile of the logits at the given quantile level.
     """
