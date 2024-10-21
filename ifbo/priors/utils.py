@@ -13,8 +13,6 @@ import types
 from typing import Any
 
 import cloudpickle
-import matplotlib.gridspec as gridspec
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 import submitit
@@ -402,47 +400,6 @@ def get_batch_to_dataloader(get_batch_method_: Callable) -> PriorDataLoader:
             )
 
     return DL  # type: ignore
-
-
-def plot_features(
-    data: torch.Tensor | np.ndarray,
-    targets: torch.Tensor | np.ndarray,
-    fig: plt.Figure | None = None,
-    categorical: bool = True,
-    plot_diagonal: bool = True,
-) -> None:
-    import seaborn as sns
-
-    if torch.is_tensor(data):
-        data = data.detach().cpu().numpy()
-        targets = targets.detach().cpu().numpy()
-
-    fig2 = fig if fig else plt.figure(figsize=(8, 8))
-    spec2 = gridspec.GridSpec(ncols=data.shape[1], nrows=data.shape[1], figure=fig2)
-    for d in range(0, data.shape[1]):
-        for d2 in range(0, data.shape[1]):
-            if d > d2:
-                continue
-            sub_ax = fig2.add_subplot(spec2[d, d2])
-            sub_ax.set_xticks([])
-            sub_ax.set_yticks([])
-            if d == d2:
-                if plot_diagonal:
-                    if categorical:
-                        sns.histplot(
-                            data[:, d], hue=targets[:], ax=sub_ax, legend=False, palette="deep"
-                        )
-                    else:
-                        sns.histplot(data[:, d], ax=sub_ax, legend=False)
-                sub_ax.set(ylabel=None)
-            else:
-                if categorical:
-                    sns.scatterplot(
-                        x=data[:, d], y=data[:, d2], hue=targets[:], legend=False, palette="deep"
-                    )
-                else:
-                    sns.scatterplot(x=data[:, d], y=data[:, d2], hue=targets[:], legend=False)
-    fig2.show()
 
 
 def trunc_norm_sampler_f(mu: float, sigma: float) -> Callable[[], float]:
