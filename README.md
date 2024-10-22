@@ -101,6 +101,8 @@ Following the PFN approach, the FT-PFN model outputs the Predictive Posterior Di
 
 ## Bayesian Optimization with ifBO
 
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/herilalaina/ifbo)
+
 To use the `ifBO` algorithm in practice, refer to [NePS](https://automl.github.io/neps/latest/), a package for hyperparameter optimization that includes the latest and improved version of `ifBO`. Below is a template example of how to use `ifBO` with NePS. For a complete Python script, see the [full example](https://github.com/automl/neps/blob/master/neps_examples/efficiency/freeze_thaw.py).
 
 ```python
