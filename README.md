@@ -88,7 +88,7 @@ For subsequent updates to the surrogates, check for new versions [here](src/pfns
 just download_pfn 0.0.2
 ```
 
-Refer to [src/PFNs4HPO/](https://github.com/automl/ifBO/tree/icml-2024/src/PFNs4HPO), you are interested in retraing FT-PFN.
+Refer to [src/PFNs4HPO/](https://github.com/automl/ifBO/tree/icml-2024/src/PFNs4HPO), if you are interested in retraining FT-PFN.
 
 
 # How to run an optimizer on a benchmark
