@@ -60,9 +60,6 @@
 @algorithms:
     ls -1 ./pfns_hpo/configs/algorithm | grep ".yaml" | sed -e "s/\.yaml$//"
 
-@download:
-    python -m ..mf_prior_bench.mfpbench.download --data-dir "/work/dlclarge1/mallik-pfns4hpo/"
-
 # This will run some compute on the login node, not ideal but it's fairly lightweight
 @generate_priors:
     echo "I hope you know what you're doing"
