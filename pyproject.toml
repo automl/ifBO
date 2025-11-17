@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=77.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ifBO"
 description = "In-context Freeze-Thaw Bayesian Optimization for Hyperparameter Optimization"
@@ -46,6 +50,9 @@ checking = [
 homepage = "https://github.com/automl/ifBO"
 repository = "https://github.com/automl/ifBO"
 bugtracker = "https://github.com/automl/ifBO/issues"
+
+[tool.setuptools]
+license-files = [] 
 
 [tool.setuptools.packages.find]
 include = ["ifbo*"]
