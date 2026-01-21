@@ -496,7 +496,7 @@ class MultiCurvesEncoder(torch.nn.Module):
             in_dim - 2, out_dim
         )
 
-    def forward(self, *x, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, **kwargs: Any) -> torch.Tensor:
         x = torch.cat(x, dim=-1)
         out = (
             self.epoch_enc(self.normalizer(x[..., 1:2]))
