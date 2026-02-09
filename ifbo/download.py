@@ -8,7 +8,9 @@ import requests
 
 VERSION_MAP = {
     "0.0.1": dict(
-        url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/ftpfnv0.0.1.tar.gz",
+        # url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/ftpfnv0.0.1.tar.gz",
+        url="https://api.figshare.com/v2/file/download/61709839", 
+        # from https://figshare.com/articles/dataset/IfBO_surrogate-compressed/31286173?file=61709839
         name="ftpfnv0.0.1",
         final_name="bopfn_broken_unisep_1000curves_10params_2M",
         extension="pt",
