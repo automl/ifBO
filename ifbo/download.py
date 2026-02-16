@@ -18,16 +18,15 @@ def _is_valid_url(url: str) -> bool:
 # From https://figshare.com/articles/dataset/IfBO_surrogate-compressed/31286173?file=61709839
 DEFAULT_URL = "https://api.figshare.com/v2/file/download/61709839"
 # The URL can be custom adjusted through the environment variable `IFBO_SURROGATE_URL`
-_url = None
-SURROGATE_URL = (
+SURROGATE_URL: str = (
     _url
     if (_url := os.getenv("IFBO_SURROGATE_URL")) and _is_valid_url(_url)
     else DEFAULT_URL
 )
 
 
-VERSION_MAP = {
-    "0.0.1": dict{
+VERSION_MAP: dict[str, dict[str, str]] = {
+    "0.0.1": {
         "url": SURROGATE_URL,
         "name": "ftpfnv0.0.1",
         "final_name": "bopfn_broken_unisep_1000curves_10params_2M",
@@ -61,7 +60,7 @@ def download_and_decompress(url: str, path: Path) -> None:
         path (Path): Path along with filename to save the downloaded file
 
     Returns:
-        bool: Flag to indicate if the download and decompression was successful
+        None
     """
     # Check if the file already exists
     if path.exists():
@@ -74,7 +73,7 @@ def download_and_decompress(url: str, path: Path) -> None:
     if response.status_code != 200:
         raise ValueError(
             f"Failed to download the surrogate from {url}."
-            f" Recieved HTTP status code: {response.status_code}."
+            f" Received HTTP status code: {response.status_code}."
             "Please either try again later, use an alternative link or contact the authors through github."
         )
 
