@@ -2,19 +2,37 @@ import argparse
 import os
 from pathlib import Path
 import tarfile
+from urllib.parse import urlparse
 
 import requests
 
 
+def _is_valid_url(url: str) -> bool:
+    """Check if string is a valid URL."""
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except Exception:
+        return False
+
+# From https://figshare.com/articles/dataset/IfBO_surrogate-compressed/31286173?file=61709839
+DEFAULT_URL = "https://api.figshare.com/v2/file/download/61709839"
+# The URL can be custom adjusted through the environment variable `IFBO_SURROGATE_URL`
+_url = None
+SURROGATE_URL = (
+    _url
+    if (_url := os.getenv("IFBO_SURROGATE_URL")) and _is_valid_url(_url)
+    else DEFAULT_URL
+)
+
+
 VERSION_MAP = {
-    "0.0.1": dict(
-        # url="https://ml.informatik.uni-freiburg.de/research-artifacts/ifbo/ftpfnv0.0.1.tar.gz",
-        url="https://api.figshare.com/v2/file/download/61709839", 
-        # from https://figshare.com/articles/dataset/IfBO_surrogate-compressed/31286173?file=61709839
-        name="ftpfnv0.0.1",
-        final_name="bopfn_broken_unisep_1000curves_10params_2M",
-        extension="pt",
-    )
+    "0.0.1": dict{
+        "url": SURROGATE_URL,
+        "name": "ftpfnv0.0.1",
+        "final_name": "bopfn_broken_unisep_1000curves_10params_2M",
+        "extension": "pt",
+    }
 }
 
 
