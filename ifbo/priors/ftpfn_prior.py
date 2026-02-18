@@ -505,9 +505,30 @@ class MultiCurvesEncoder(torch.nn.Module):
         )
         return out
 
+class MultiCurvesEncoderSeqLen(torch.nn.Module):
+    def __init__(self, in_dim: int, out_dim: int, seq_len: int) -> None:
+        super().__init__()
+        self.normalizer = torch.nn.Sequential(
+            encoders.Normalize(0.5, math.sqrt(1 / 12)),
+        )
+        self.epoch_enc = torch.nn.Linear(1, out_dim, bias=False)
+        self.idcurve_enc = torch.nn.Embedding(seq_len + 1, out_dim)
+        self.configuration_enc = encoders.get_variable_num_features_encoder(encoders.Linear)(
+            in_dim - 2, out_dim
+        )
 
-def get_encoder() -> Callable[[int, int], torch.nn.Module]:
-    return lambda num_features, emsize: MultiCurvesEncoder(num_features, emsize)
+    def forward(self, *x, **kwargs) -> torch.Tensor:
+        x = torch.cat(x, dim=-1)
+        out = (
+            self.epoch_enc(self.normalizer(x[..., 1:2]))
+            + self.idcurve_enc(x[..., :1].int()).squeeze(2)
+            + self.configuration_enc(x[..., 2:])
+        )
+        return out
+
+
+def get_encoder(seq_len) -> Callable[[int, int], torch.nn.Module]:
+    return lambda num_features, emsize: MultiCurvesEncoderSeqLen(num_features, emsize, seq_len)
 
 
 def sample_curves(

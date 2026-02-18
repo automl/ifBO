@@ -6,6 +6,7 @@ import itertools
 import time
 from typing import Any
 
+import argparse
 import torch
 from torch import nn
 from torch.cuda.amp import autocast
@@ -13,14 +14,17 @@ from torch.cuda.amp import GradScaler
 from tqdm import tqdm
 
 from ifbo import positional_encodings
-from ifbo import utils
+from ifbo import utils, encoders, bar_distribution
 from ifbo.bar_distribution import BarDistribution
 from ifbo.bar_distribution import get_custom_bar_dist
-from ifbo.priors import prior
+from ifbo.priors import prior, ftpfn_prior
+from ifbo.priors.utils import get_batch_to_dataloader
 from ifbo.transformer import TransformerModel
 from ifbo.utils import get_cosine_schedule_with_warmup
 from ifbo.utils import get_openai_lr
 from ifbo.utils import init_dist
+
+from ifbo.utils import default_device
 
 
 class Losses:
@@ -205,8 +209,8 @@ def train(
         total_loss = 0.0
         total_positional_losses = torch.zeros(bptt)
         total_positional_losses_recorded = torch.zeros(bptt)
-        nan_steps = torch.zeros(1)
-        ignore_steps = torch.zeros(1)
+        nan_steps = torch.zeros(1).to(device)
+        ignore_steps = torch.zeros(1).to(device)
         before_get_batch = time.time()
         assert (
             len(dl) % aggregate_k_gradients == 0
@@ -384,7 +388,7 @@ def train(
                         }
                         if step_callback is not None and rank == 0:
                             step_callback(metrics_to_log)
-                        nan_steps += nan_share
+                        nan_steps += nan_share.detach()
                         ignore_steps += (targets == -100).float().mean()
                 except Exception as e:
                     print("Invalid step encountered, skipping...")
@@ -459,3 +463,105 @@ def train(
         return total_loss, total_positional_losses, model.to("cpu"), dl
 
     return None
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train an ifBO model")
+
+    # transformer model parameters
+    parser.add_argument("--nlayers", type=int, help="Number of layers", default=6)
+    parser.add_argument("--emsize", type=int, default=512, help="Size of Embeddings")
+    parser.add_argument("--nhead", type=int, default=4, help="Number of heads")
+
+    # PFN parameters
+    parser.add_argument(
+        "--num_borders",
+        type=int,
+        default=1000,
+        help="Number of borders considered in Bar distribution",
+    )
+
+    # Prior parameters
+    parser.add_argument("--seq_len", type=int, required=True, help="Maximum sequence length")
+    parser.add_argument(
+        "--num_features",
+        type=int,
+        required=False,
+        help="The total number of features for each datapoint in an example.",
+        default=12, # has to be at least 3
+    )
+    parser.add_argument(
+        "--power_single_eval_pos_sampler",
+        type=int,
+        required=False,
+        help="Power of an exponential distribution to weight sampling of single eval pos.",
+        default=-2,
+    )
+
+    # training parameters
+    parser.add_argument("--epochs", type=int, required=True, help="Number of Training Epochs")
+    parser.add_argument("--batch_size", type=int, default=25, help="Batch Size for Training")
+    parser.add_argument("--lr", type=float, default=0.0001, help="Learning Rate")
+    parser.add_argument("--steps_per_epoch", type=int, default=100, help="Number of Steps per Epoch")
+    parser.add_argument(
+        "--train_mixed_precision",
+        action="store_true",
+        help="Enable Mixed Precision Training",
+    )
+    parser.add_argument("--num_gpus", type=int, default=1, help="Number of GPUs to use")
+
+    # other parameters
+    parser.add_argument("--output_path", type=str, required=True, help="Path to save the model")
+
+    args = parser.parse_args()
+
+    seq_len = args.seq_len
+
+    bucket_limits = torch.linspace(0.0, 1.0, args.num_borders).to(default_device)
+    criterion = bar_distribution.BarDistribution(bucket_limits)
+
+    single_eval_pos_gen = utils.get_weighted_single_eval_pos_sampler(
+        max_len=seq_len,
+        min_len=0,
+        p=args.power_single_eval_pos_sampler,
+    )
+
+    configs_train = {
+        "nlayers": args.nlayers,
+        "emsize": args.emsize,
+        "epochs": args.epochs,
+        "lr": args.lr,
+        "nhead": args.nhead,
+        "bptt": seq_len,  
+        "steps_per_epoch": args.steps_per_epoch,
+        "train_mixed_precision": args.train_mixed_precision,
+        "batch_size": args.batch_size,
+    }
+    configs_train["bptt"] = seq_len
+    configs_train["nhid"] = args.emsize * 2
+    configs_train["warmup_epochs"] = args.epochs // 4
+    configs_train.update(
+        dict(
+            priordataloader_class=get_batch_to_dataloader(ftpfn_prior.get_batch),
+            criterion=criterion,
+            encoder_generator=ftpfn_prior.get_encoder(seq_len),
+            y_encoder_generator=encoders.get_normalized_uniform_encoder(
+                encoders.Linear
+            ),
+            extra_prior_kwargs_dict={
+                "num_features": args.num_features,
+            },
+            single_eval_pos_gen=single_eval_pos_gen,
+            style_encoder_generator=None
+        )
+    )
+
+    total_loss, total_positional_losses, model, dl = train(
+        **configs_train
+    )
+    print(f"Total loss: {total_loss}, Total positional losses: {total_positional_losses}")
+    torch.save(
+        model,
+        args.output_path,
+    )
+    print(f"Model saved to {args.output_path}")
+
