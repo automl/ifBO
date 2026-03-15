@@ -7,13 +7,14 @@
 This repository contains the official code for our [ICML 2024 paper](https://openreview.net/forum?id=VyoY3Wh9Wd). `ifBO` is an efficient Bayesian Optimization algorithm that dynamically selects and incrementally evaluates candidates during the optimization process. It uses a model called the `Freeze-Thaw surrogate (FT-PFN)` to predict the performance of candidate configurations as more resources are allocated. The `main` branch includes the necessary API to use `FT-PFN`. Refer to the following sections:
 - [Surrogate API](#surrogate-api): to learn how to initialize and use the surrogate model.
 - [Bayesian Optimization with ifBO](#bayesian-optimization-with-ifbo): to understand how to use `ifBO` for Hyperparameter Optimization.
+- [Training your own model][#training-your-own-model]: to understand ifBO training pipeline.
 
 
 > To reproduce experiments from the above paper version, please refer to the branch [`icml-2024`](https://github.com/automl/ifBO/tree/icml-2024).
 
 # Installation
 
-Requires Python 3.11.
+Requires Python 3.11 or later.
 
 ```bash
 pip install -U ifBO
@@ -139,6 +140,15 @@ neps.run(
 )
 ```
 
+## Training your own model
+
+Train ifBO from scratch with the following command:
+
+```bash
+python -m ifbo.train --epochs 20 --output_path your_own_ifbo.model --seq_len 1000
+```
+
+For more training options, run ``python -m ifbo.train -h`` or inspect ``ifbo/train.py``.
 
 
 # Citation
